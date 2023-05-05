@@ -1,0 +1,14 @@
+.idea
+.deps
+.debugger
+.vscode
+
+# python temporary files
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+artifacts/
+
+build/

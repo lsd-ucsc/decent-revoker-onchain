@@ -1,0 +1,12 @@
+[submodule "utils/PyEthHelper"]
+	path = utils/PyEthHelper
+	url = https://github.com/lsd-ucsc/PyEthHelper.git
+	branch = main
+[submodule "libs/DecentRA"]
+	path = libs/DecentRA
+	url = git@github.com:lsd-ucsc/decent-ra-onchain.git
+	branch = main
+[submodule "libs/DecentPubSub"]
+	path = libs/DecentPubSub
+	url = git@github.com:lsd-ucsc/decent-pubsub-onchain.git
+	branch = main
