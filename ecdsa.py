@@ -287,21 +287,26 @@ def elliptic_curve_test():
     generate_key()
     # secret = int(PRIV1, 16)
 
+def sign_messge(priv, message):
+    priv = PrivateKey(int(priv, 16))
+    signature = priv.sign(message)
+
+    print(signature.r.to_bytes(32, "big").hex())
+    print(signature.s.to_bytes(32, "big").hex())
+
+
+
 def revoke_vote_test():
-    contract_addr = "70D1419b54d7d657240a04d87dc4121c294d12cb"
+    contract_addr = "AAC129A3e6e9f44147951dDD5655d66c312A4713"
     contract_addr = contract_addr.lower()
-    enclave_hash = "2b293a7b5cffc0cd9001e423645e280dce6c7350123e57c8de733738d9851b67"
+    enclave_hash = "2b293a7b5cffc0cd9001e423645e280dce6c7350123e57c8de733738d9851b68"
     msg = contract_addr + enclave_hash
     print("message", msg)
     hashedMsg = sha256(bytes.fromhex(msg)).hexdigest()
     print("hashed message: ", "0x"+ hashedMsg)
     msg_int = int(hashedMsg, 16)
 
-    priv3 = PrivateKey(int(PRIV3, 16))
-    signature = priv3.sign(msg_int)
-    # print(signature.r.to_bytes(32, "big").hex(), signature.s.to_bytes(32, "big").hex())
-    print("0x" + signature.r.to_bytes(32, "big").hex())
-    print("0x" + signature.s.to_bytes(32, "big").hex())
+    sign_messge(PRIV3, msg_int)
 
 
 if __name__ == "__main__":
