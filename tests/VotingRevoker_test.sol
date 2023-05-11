@@ -30,31 +30,6 @@ contract VotingRevokerTest {
         m_revokerAddr = address(m_revoker);
     }
 
-    function invalidVoteAddrTest() public {
-        bytes32 message = hex"ba1d1e8d876062218257d1bd9ef05ee2e47c17e9f563a645d17bee1c59323119";
-        bytes32 sigR = hex"b58dfbf46fbb194a6b27d5c4dfabd35b3ae67d0bea3851b03ce8fbc62857f352";
-        bytes32 sigS = hex"a62eecddb8213dc6a06f43cbddc619fbdcc485225557dad467feb612db44a143";
-        address invalidAddr = address(bytes20(bytes("0x19aba90dbffca8d016040514b6fd64597b171850")));
-        
-        try m_revoker.Vote(
-            invalidAddr,
-            m_enclaveIds[0],
-            message,
-            sigR,
-            sigS
-        ) {
-            Assert.ok(false, "should not be right contract address");
-        } catch Error(string memory reason) {
-            Assert.equal(
-                reason,
-                "invalid contract address",
-                reason
-            );
-        } catch (bytes memory) {
-            Assert.ok(false, "Unexpected revert");
-        }
-    }
-
     function invalidEnclaveIdTest() public {
         bytes32 message = hex"ba1d1e8d876062218257d1bd9ef05ee2e47c17e9f563a645d17bee1c59323119";
         bytes32 sigR = hex"b58dfbf46fbb194a6b27d5c4dfabd35b3ae67d0bea3851b03ce8fbc62857f352";
@@ -64,7 +39,6 @@ contract VotingRevokerTest {
         try m_revoker.Vote(
             m_revokerAddr,
             invalidEnclaveId,
-            message,
             sigR,
             sigS
         ) {
@@ -99,13 +73,12 @@ contract VotingRevokerTest {
     function voteTest() public {
         address revoker = 0x70D1419b54d7d657240a04d87dc4121c294d12cb;
         bytes32 message = hex"e639e126ab5b96aa71ef2d8354d2fc47d6c4abf80b2b0c9628776cd130f9fb04";
-        bytes32 sigR = hex"7f1e3256f4e98bc2aa705593cf08ffb1a8fa61a946959a5dba238e66a2a99dbd";
-        bytes32 sigS = hex"88f0e92f77ca20aea23f1bba366bc45e66d334b5586e9a36ee412b844e8556c1";
+        bytes32 sigR = hex"182812a0d8426b3da86db031db88e14de415060389f7419f924616c531cf0ed5";
+        bytes32 sigS = hex"fa47040006b0df208c0c112ea9190f8cd92c824d475d94010173741ca52853ac";
         
         try m_revoker.Vote(
             revoker,
             m_enclaveIds[0],
-            message,
             sigR,
             sigS
         ) {

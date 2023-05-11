@@ -28,26 +28,15 @@ contract VotingRevoker is Revoker {
         }
     }
 
-    address[] signers1;
-    address[] signers2;
-    bytes32 m_message1;
-    bytes32 m_message2;
-    bytes concatenated1;
-    bytes concatenated2;
-    bool validStakeholder;
-    bool isequal;
-
     function Vote(
         address contractAddr,
         bytes32 enclaveId,
-        // bytes memory unhashed,
-        bytes32 message,
         bytes32 sigR, 
         bytes32 sigS) 
-    public 
+    public view
     {
         // contract must be this contract
-        require (contractAddr == address(this), "invalid contract address");
+        // require (contractAddr == address(this), "invalid contract address");
         
         // enclave must exist
         require (m_enclaveIds[enclaveId] == true, "enclave not found");
@@ -55,27 +44,17 @@ contract VotingRevoker is Revoker {
         // enclave has not been revoked yet
         require (m_revoked[enclaveId] == false, "enclave already recoked");
 
-        // m_message1 = message;
-        // concatenated1 = unhashed;
-        // concatenated2 = bytes.concat(bytes20(contractAddr), enclaveId);
-        // m_message2 = sha256(concatenated2);
+        bytes memory concatenated = bytes.concat(bytes20(contractAddr), enclaveId);      
+        bytes32 message = sha256(concatenated);
 
-        // isequal = keccak256(concatenated1) == keccak256(concatenated2);
+        address[] memory signers = Common.RecoverSigners(message, sigR, sigS);
 
-        bytes memory concatenated = bytes.concat(bytes20(contractAddr), enclaveId);
-        m_message1 = message;
-        m_message2 = sha256(concatenated);
-        // bytes32 message = sha256(concatenated);
-        
-        // signers1 = Common.RecoverSigners(m_message1, sigR, sigS);
-        signers2 = Common.RecoverSigners(m_message2, sigR, sigS);
-
-        validStakeholder = false;
+        bool validStakeholder = false;
         address stakeholder;
-        for (uint i = 0; i < signers2.length; i++) {
-            if (m_stakeHolders[signers2[i]]) {
+        for (uint i = 0; i < signers.length; i++) {
+            if (m_stakeHolders[signers[i]]) {
                 validStakeholder = true;
-                stakeholder = signers2[i];
+                stakeholder = signers[i];
             }
         }
 
@@ -90,38 +69,6 @@ contract VotingRevoker is Revoker {
         //     // if number of votes more than threshold, revoke
         //     m_revoked[enclaveId] = true;
         // }
-    }
-    function getConcatenated1() external view returns (bytes memory) {
-        return concatenated1;
-    }
-
-    function getConcatenated2() external view returns (bytes memory) {
-        return concatenated2;
-    }
-
-    function isEqual() external view returns (bool) {
-        return isequal;
-    }
-
-
-    function isValidStakeholder() external view returns (bool) {
-        return validStakeholder;
-    }
-
-    function getMessage1() external view returns (bytes32) {
-        return m_message1;
-    }
-
-    function getMessage2() external view returns (bytes32) {
-        return m_message2;
-    }
-
-    function getSigners() external view returns (address[] memory) {
-        return signers1;
-    }
-
-    function getSigners2() external view returns (address[] memory) {
-        return signers2;
     }
 
     function numVotes(bytes32 enclaveId) external view returns (uint) {
