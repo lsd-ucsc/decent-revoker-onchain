@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from random import randint
 from hashlib import sha256
+import random
 import sha3
 
 
@@ -287,12 +288,12 @@ def elliptic_curve_test():
     generate_key()
     # secret = int(PRIV1, 16)
 
-def sign_messge(priv, message):
+def sign_message(priv, message):
     priv = PrivateKey(int(priv, 16))
     signature = priv.sign(message)
 
-    print(signature.r.to_bytes(32, "big").hex())
-    print(signature.s.to_bytes(32, "big").hex())
+    print("r: ", signature.r.to_bytes(32, "big").hex())
+    print("s: ",signature.s.to_bytes(32, "big").hex())
 
 
 
@@ -302,13 +303,45 @@ def revoke_vote_test():
     enclave_hash = "2b293a7b5cffc0cd9001e423645e280dce6c7350123e57c8de733738d9851b68"
     msg = contract_addr + enclave_hash
     print("message", msg)
-    hashedMsg = sha256(bytes.fromhex(msg)).hexdigest()
-    print("hashed message: ", "0x"+ hashedMsg)
-    msg_int = int(hashedMsg, 16)
+    hashed_msg = sha256(bytes.fromhex(msg)).hexdigest()
+    print("hashed message: ", "0x"+ hashed_msg)
+    msg_int = int(hashed_msg, 16)
 
-    sign_messge(PRIV3, msg_int)
+    sign_message(PRIV3, msg_int)
 
+def revoke_conflicting_message():
+    event1 = "41a59b65749a4be2c4713068c48b721a476a001aa5525af1f1a1778e7008e24d"
+    # event2 = "7c1a3689c250a905c93ce3b28c9fd2457116f020da82661cbe98ebe4353ded94"
+    content1 = "08330395aaf3bde35d90fcc5030d8015ae233b8761a35f1bb83e31b383771de2"
+    content2 = "1ce19baeac400fb59e371b8914e31940bd896403ebef92c9d17ef15ec4ea2605"
+
+    message1 = event1 + content1
+    message2 = event1 + content2
+
+    hashed_message1 = sha256(bytes.fromhex(message1)).hexdigest()
+    hashed_message2 = sha256(bytes.fromhex(message2)).hexdigest()
+
+    print("event1: ", "0x" + event1)
+    # print("event2: ", "0x" + event2)
+    print("content1: ", "0x" + content1)
+    print("content2: ", "0x" + content2)
+
+    sign_message(PRIV1, int(hashed_message1, 16))
+    sign_message(PRIV1, int(hashed_message2, 16))
+
+    # add app certificate on chain
+    # recover signer for the messages
+    # check signer is appKeyAddr
+    # if it is, then revoke appEnclaveHash
+
+def revoke_leaked_key():
+    message = "REVOKE THIS PRIVATE KEY"
+
+    hashed_message = sha256(message.encode()).hexdigest()
+    sign_message(PRIV1, int(hashed_message, 16))
 
 if __name__ == "__main__":
     # elliptic_curve_test()
-    revoke_vote_test()
+    # revoke_vote_test()
+    # revoke_conflicting_message()
+    revoke_leaked_key()
