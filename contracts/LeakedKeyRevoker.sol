@@ -11,7 +11,7 @@ import {LibSecp256k1Sha256} from "libs/DecentRA/contracts/LibSecp256k1Sha256.sol
 
 
 
-contract ConflictingMessageRevoker{
+contract LeakedKeyRevoker{
 
     using DecentAppCert for DecentAppCert.DecentApp;
 
@@ -41,51 +41,28 @@ contract ConflictingMessageRevoker{
     //===== functions =====
 
     function Vote(
-        bytes32 event1,
-		bytes32 content1,
-		bytes32 message1SigR,
-		bytes32 message1SigS,
-		bytes32 event2,
-		bytes32 content2,
-		bytes32 message2SigR,
-		bytes32 message2SigS,
+		bytes32 sigR,
+		bytes32 sigS,
 		bytes memory appCertDer
 	)
     public
     {
-		// must be the same event
-		require (event1 == event2, "events must be the same");
-
-		// must be different content
-		require (content1 != content2, "contents must be different");
+		bytes memory message = bytes("REVOKE THIS PRIVATE KEY");
 
 		// load the DecentApp cert
 		DecentAppCert.DecentApp memory appCert;
         appCert.loadCert(appCertDer, m_decentSvrMgr, m_decentSvrMgr);
         m_appCert = appCert;
 
-		bytes memory message1 = bytes.concat(event1, content1);
-		bytes memory message2 = bytes.concat(event2, content2);
-
-		// require that they are signed by the same App
+		// require that the key was used to sign the message above
 		require(
 			LibSecp256k1Sha256.verifySignMsg(
 				m_appCert.appKeyAddr,
-				message1,
-				message1SigR,
-				message1SigS
+				message,
+				sigR,
+				sigS
 			),
 			"message1 signature invalid"
-		);
-
-		require(
-			LibSecp256k1Sha256.verifySignMsg(
-				m_appCert.appKeyAddr,
-				message2,
-				message2SigR,
-				message2SigS
-			),
-			"message2 signature invalid"
 		);
 
 		m_revoked[m_appCert.appEnclaveHash] = true;
