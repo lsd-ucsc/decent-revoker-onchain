@@ -59,7 +59,8 @@ contract VotingRevoker {
         address contractAddr,
         bytes32 enclaveId,
         bytes32 sigR,
-        bytes32 sigS)
+        bytes32 sigS
+    )
     public
     {
         // contract must be this contract
