@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {Common} from "./Common.sol";
-import {LibSecp256k1Sha256} from "libs/DecentRA/contracts/LibSecp256k1Sha256.sol";
-
 contract VotingRevoker {
 
     //===== structs =====
@@ -75,14 +72,16 @@ contract VotingRevoker {
         bytes memory concatenated = bytes.concat(bytes20(contractAddr), enclaveId);
         bytes32 message = sha256(concatenated);
 
-        address[] memory signers = Common.RecoverSigners(message, sigR, sigS);
-
         bool validStakeholder = false;
         address stakeholder;
-        for (uint i = 0; i < signers.length; i++) {
-            if (m_stakeHolders[signers[i]]) {
+
+        for (uint8 recoverId = 27; recoverId <= 28; recoverId++) {
+            address signer = ecrecover(message, recoverId, sigR, sigS);
+
+            if (m_stakeHolders[signer]) {
                 validStakeholder = true;
-                stakeholder = signers[i];
+                stakeholder = signer;
+                break;
             }
         }
 
