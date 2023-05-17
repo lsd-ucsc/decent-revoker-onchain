@@ -1,7 +1,8 @@
 MODULE_NAME := contracts
 CONTRACTS   := \
 	VotingRevoker \
-	ConflictingMessageRevoker
+	ConflictingMessageRevoker \
+	LeakedKeyRevoker
 
 MKFILE_PATH  := $(abspath $(lastword $(MAKEFILE_LIST)))
 CURRENT_DIR  := $(dir $(MKFILE_PATH))

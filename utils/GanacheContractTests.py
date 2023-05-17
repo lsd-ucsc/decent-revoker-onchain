@@ -17,6 +17,10 @@ import subprocess
 import sys
 import time
 
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec, utils
+from typing import Tuple
 from web3 import Web3
 
 
@@ -32,6 +36,9 @@ GANACHE_KEYS_PATH   = os.path.join(BUILD_DIR, 'ganache_keys.json')
 GANACHE_PORT     = 7545
 GANACHE_NUM_KEYS = 20
 GANACHE_NET_ID   = 1337
+
+REVOKE_MSG_HASH = b'REVOKE THIS PRIVATE KEY         '
+assert len(REVOKE_MSG_HASH) == 32, 'REVOKE_MSG_HASH must be 32 bytes long'
 
 
 sys.path.append(PYHELPER_DIR)
@@ -72,6 +79,27 @@ def CheckEnclaveIdInReceipt(receipt: dict, enclaveId: str) -> bool:
 	return False
 
 
+def GenerateRevokeSign(credentials: dict) -> Tuple[str, str]:
+
+	privKey: ec.EllipticCurvePrivateKey = serialization.load_der_private_key(
+		bytes.fromhex(credentials['privKeyDer']),
+		password=None
+	)
+
+	sign = privKey.sign(
+		REVOKE_MSG_HASH,
+		ec.ECDSA(utils.Prehashed(hashes.SHA256()))
+	)
+	r, s = utils.decode_dss_signature(sign)
+	rHex = r.to_bytes(32, 'big').hex()
+	sHex = s.to_bytes(32, 'big').hex()
+
+	print('Revoke sign R: {}'.format(rHex))
+	print('Revoke sign S: {}'.format(sHex))
+
+	return rHex, sHex
+
+
 def _PemToDerCert(certPem: str) -> bytes:
 	# PEM to DER
 	certPem = certPem.strip()
@@ -108,7 +136,7 @@ def LoadDecentAppCertDer(sIdx: int, aIdx: int) -> bytes:
 	return _PemToDerCert(certPem)
 
 
-def LoadConflictMsg(sIdx: int, aIdx: int, mIdx: int) -> dict:
+def LoadProblemCredential(sIdx: int, aIdx: int, mIdx: int) -> dict:
 	filename = 'CredProbApp_S{:02}_{:02}_{:02}.json'.format(sIdx, aIdx, mIdx)
 	with open(os.path.join(INPUTS_DIR, filename), 'r') as f:
 		msg = json.load(f)
@@ -258,39 +286,115 @@ def RunConflictMsgRevokerTests(
 	)
 	print()
 
-	conflicts = LoadConflictMsg(0, 0, 1)
+	credentials = LoadProblemCredential(0, 0, 1)
 	print('report conflict msg to revoke enclave {}'.format(
-		conflicts['enclaveHash']
+		credentials['enclaveHash']
 	))
 	reportReceipt = EthContractHelper.CallContractFunc(
 		w3=w3,
 		contract=revokerContract,
 		funcName='reportConflicts',
 		arguments=[
-			'0x' + conflicts['msgIdHash'],
-			'0x' + conflicts['msgContent1Hash'],
-			'0x' + conflicts['msg1SignR'],
-			'0x' + conflicts['msg1SignS'],
-			'0x' + conflicts['msgContent2Hash'],
-			'0x' + conflicts['msg2SignR'],
-			'0x' + conflicts['msg2SignS'],
+			'0x' + credentials['msgIdHash'],
+			'0x' + credentials['msgContent1Hash'],
+			'0x' + credentials['msg1SignR'],
+			'0x' + credentials['msg1SignS'],
+			'0x' + credentials['msgContent2Hash'],
+			'0x' + credentials['msg2SignR'],
+			'0x' + credentials['msg2SignS'],
 			LoadDecentSvrCertDer(0),
 			LoadDecentAppCertDer(0, 0),
 		 ],
 		privKey=privKey,
 		confirmPrompt=False # don't prompt for confirmation
 	)
-	assert CheckEnclaveIdInReceipt(reportReceipt, conflicts['enclaveHash']), \
+	assert CheckEnclaveIdInReceipt(reportReceipt, credentials['enclaveHash']), \
 		'Enclave ID not in receipt'
 	revokeState = EthContractHelper.CallContractFunc(
 		w3=w3,
 		contract=revokerContract,
 		funcName='isRevoked',
-		arguments=[ '0x' + conflicts['enclaveHash'] ],
+		arguments=[ '0x' + credentials['enclaveHash'] ],
 		privKey=None,
 		confirmPrompt=False # don't prompt for confirmation
 	)
-	assert revokeState == True, 'Enclave should be revoked after 2 votes'
+	assert revokeState == True, 'Enclave should be revoked'
+	print()
+
+
+def RunLeakedKeyRevokerTests(
+	w3: Web3,
+	pubSubAddr: str,
+	decentSvrCertMgrAddr: str,
+) -> None:
+	# setup sending account
+	privKey = EthContractHelper.SetupSendingAccount(
+		w3=w3,
+		account=0, # use account 0
+		keyJson=CHECKSUM_KEYS_PATH
+	)
+
+	credentials = LoadProblemCredential(0, 0, 1)
+
+	# generate revoke signature
+	rHex, sHex = GenerateRevokeSign(credentials)
+
+	# deploy LeakedKeyRevoker contract
+	print('Deploying LeakedKeyRevoker contract...')
+	revokerContract = EthContractHelper.LoadContract(
+		w3=w3,
+		projConf=PROJECT_CONFIG_PATH,
+		contractName='LeakedKeyRevoker',
+		release=None, # use locally built contract
+		address=None, # deploy new contract
+	)
+	revokerReceipt = EthContractHelper.DeployContract(
+		w3=w3,
+		contract=revokerContract,
+		arguments=[ pubSubAddr, decentSvrCertMgrAddr ],
+		privKey=privKey,
+		gas=None, # let web3 estimate
+		value=0,
+		confirmPrompt=False # don't prompt for confirmation
+	)
+	revokerAddr = revokerReceipt.contractAddress
+	print('LeakedKeyRevoker contract deployed at {}'.format(revokerAddr))
+	revokerContract = EthContractHelper.LoadContract(
+		w3=w3,
+		projConf=PROJECT_CONFIG_PATH,
+		contractName='LeakedKeyRevoker',
+		release=None, # use locally built contract
+		address=revokerAddr
+	)
+	print()
+
+	print('report leaked key to revoke enclave {}'.format(
+		credentials['enclaveHash']
+	))
+	reportReceipt = EthContractHelper.CallContractFunc(
+		w3=w3,
+		contract=revokerContract,
+		funcName='submitRevokeSign',
+		arguments=[
+			'0x' + rHex,
+			'0x' + sHex,
+			LoadDecentSvrCertDer(0),
+			LoadDecentAppCertDer(0, 0),
+		 ],
+		privKey=privKey,
+		confirmPrompt=False # don't prompt for confirmation
+	)
+	assert CheckEnclaveIdInReceipt(reportReceipt, credentials['enclaveHash']), \
+		'Enclave ID not in receipt'
+	revokeState = EthContractHelper.CallContractFunc(
+		w3=w3,
+		contract=revokerContract,
+		funcName='isRevoked',
+		arguments=[ '0x' + credentials['enclaveHash'] ],
+		privKey=None,
+		confirmPrompt=False # don't prompt for confirmation
+	)
+	assert revokeState == True, 'Enclave should be revoked'
 	print()
 
 
@@ -409,6 +513,9 @@ def RunTests() -> None:
 
 	# Run ConflictingMessageRevoker tests
 	RunConflictMsgRevokerTests(w3, pubSubAddr, decentSvrAddr)
+
+	# Run LeakedKeyRevoker tests
+	RunLeakedKeyRevokerTests(w3, pubSubAddr, decentSvrAddr)
 
 
 def StopGanache(ganacheProc: subprocess.Popen) -> None:

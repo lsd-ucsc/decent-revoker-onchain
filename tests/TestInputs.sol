@@ -232,6 +232,11 @@ library TestInputs {
     bytes32 constant DECENT_APP_01_EVENT_02_MSG2_SIGN_S =
         0x91ab916d8663f107b6c93ae8a2c4d3f34f7b824ccddae13ba49a35143b9633f5;
 
+    bytes32 constant DECENT_APP_01_REVOKE_SIGN_R =
+        0xe7ebb63cb4e95b9f69fcb1a4c5ecf5b0a14260773af9bcfc648630576cb5ca99;
+    bytes32 constant DECENT_APP_01_REVOKE_SIGN_S =
+        0x1be2d60e97bfa01a3c6f1ec70592fa89c3114d38a7e18366b9ee10bbcdfd354f;
+
     bytes constant DECENT_APP_02_CERT_DER =
         hex"308203953082033aa003020102022040ce88e9c9375492e4bbfb586266d8f227"
         hex"815e5c0bcd63d5ed587da3bc4e55f7300c06082a8648ce3d0403020500308184"
@@ -280,5 +285,10 @@ library TestInputs {
         0x790551422e71c21b5723c3acaab390c811f71cb61818a9e2a977b95a3e6e9dab;
     bytes32 constant DECENT_APP_02_EVENT_01_MSG2_SIGN_S =
         0x1790210e78755c50b6af22f23ad4917c4daf7bc7d09650e1430ba751e84320ea;
+
+    bytes32 constant DECENT_APP_02_REVOKE_SIGN_R =
+        0x17b4131a12426ba2f7536651598043c952374c9e58b5ee29be87e60cf2461a1f;
+    bytes32 constant DECENT_APP_02_REVOKE_SIGN_S =
+        0x93c449c0292de0fb09b86a2432396f5c1ee67516cdbf1e9f818c62335947533b;
 
 }

@@ -19,7 +19,7 @@ import {TestInputs} from "../TestInputs.sol";
 
 
 // File name has to end with '_test.sol', this file can contain more than one testSuite contracts
-contract DecentAppCert_testSuit {
+contract ConflictMsgRevoke_testSuit {
 
     //===== member variables =====
 
