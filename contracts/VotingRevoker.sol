@@ -70,7 +70,7 @@ contract VotingRevoker {
 
     //===== functions =====
 
-    function revokeVote(bytes32 enclaveId) public {
+    function revokeVote(bytes32 enclaveId) external {
         // must be a valid stakeholder to vote
         require(m_stakeHolders[msg.sender], "invalid stakeholder");
 
@@ -93,7 +93,7 @@ contract VotingRevoker {
         }
     } // end revokeVote()
 
-    function isRevoked(bytes32 enclaveId) public view returns (bool) {
+    function isRevoked(bytes32 enclaveId) external view returns (bool) {
         return m_revoked[enclaveId];
     } // end isRevoked()
 

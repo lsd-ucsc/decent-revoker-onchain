@@ -8,6 +8,7 @@
 ###
 
 
+import base64
 import json
 import logging
 import os
@@ -23,7 +24,7 @@ ROOT_DIR     = os.path.join(os.path.dirname(__file__), '..')
 UTILS_DIR    = os.path.join(ROOT_DIR, 'utils')
 BUILD_DIR    = os.path.join(ROOT_DIR, 'build')
 TESTS_DIR    = os.path.join(ROOT_DIR, 'tests')
-CERTS_DIR    = os.path.join(TESTS_DIR, 'certs')
+INPUTS_DIR   = os.path.join(TESTS_DIR, 'inputs')
 PYHELPER_DIR = os.path.join(UTILS_DIR, 'PyEthHelper')
 PROJECT_CONFIG_PATH = os.path.join(UTILS_DIR, 'project_conf.json')
 CHECKSUM_KEYS_PATH  = os.path.join(BUILD_DIR, 'ganache_keys_checksum.json')
@@ -56,7 +57,9 @@ def CheckEnclaveIdInReceipt(receipt: dict, enclaveId: str) -> bool:
 	if 'logs' not in receipt:
 		return False
 
-	enclaveIdBytes = bytes.fromhex(enclaveId[2:])
+	if enclaveId.startswith('0x'):
+		enclaveId = enclaveId[2:]
+	enclaveIdBytes = bytes.fromhex(enclaveId)
 
 	for log in receipt['logs']:
 		if 'data' not in log:
@@ -69,49 +72,60 @@ def CheckEnclaveIdInReceipt(receipt: dict, enclaveId: str) -> bool:
 	return False
 
 
-def RunTests() -> None:
-	# connect to ganache
-	ganacheUrl = 'http://localhost:{}'.format(GANACHE_PORT)
-	w3 = Web3(Web3.HTTPProvider(ganacheUrl))
-	while not w3.is_connected():
-		print('Attempting to connect to ganache...')
-		time.sleep(1)
-	print('Connected to ganache')
+def _PemToDerCert(certPem: str) -> bytes:
+	# PEM to DER
+	certPem = certPem.strip()
+	certPem = certPem.removeprefix('-----BEGIN CERTIFICATE-----')
+	certPem = certPem.removesuffix('-----END CERTIFICATE-----')
 
-	# checksum keys
-	GanacheAccounts.ChecksumGanacheKeysFile(
-		CHECKSUM_KEYS_PATH,
-		GANACHE_KEYS_PATH
-	)
+	certPem = certPem.replace('\n', '')
+	certPem = certPem.replace('\r', '')
+	der = base64.b64decode(certPem)
 
-	# setup account
+	return der
+
+
+def LoadIASRootCertDer() -> bytes:
+	with open(os.path.join(INPUTS_DIR, 'CertIASRoot.pem'), 'r') as f:
+		certPem = f.read()
+
+	return _PemToDerCert(certPem)
+
+
+def LoadDecentSvrCertDer(idx: int) -> bytes:
+	filename = 'CertDecentServer_{:02}.pem'.format(idx)
+	with open(os.path.join(INPUTS_DIR, filename), 'r') as f:
+		certPem = f.read()
+
+	return _PemToDerCert(certPem)
+
+
+def LoadDecentAppCertDer(sIdx: int, aIdx: int) -> bytes:
+	filename = 'CertDecentApp_S{:02}_{:02}.pem'.format(sIdx, aIdx)
+	with open(os.path.join(INPUTS_DIR, filename), 'r') as f:
+		certPem = f.read()
+
+	return _PemToDerCert(certPem)
+
+
+def LoadConflictMsg(sIdx: int, aIdx: int, mIdx: int) -> dict:
+	filename = 'CredProbApp_S{:02}_{:02}_{:02}.json'.format(sIdx, aIdx, mIdx)
+	with open(os.path.join(INPUTS_DIR, filename), 'r') as f:
+		msg = json.load(f)
+
+	return msg
+
+
+def RunVotingRevokerTests(
+	w3: Web3,
+	pubSubAddr: str,
+) -> None:
+	# setup sending account
 	privKey = EthContractHelper.SetupSendingAccount(
 		w3=w3,
 		account=0, # use account 0
 		keyJson=CHECKSUM_KEYS_PATH
 	)
-
-	# deploy PubSubService contract
-	print('Deploying PubSubService contract...')
-	pubSubContract = EthContractHelper.LoadContract(
-		w3=w3,
-		projConf=PROJECT_CONFIG_PATH,
-		contractName='PubSubService',
-		release=None, # use locally built contract
-		address=None, # deploy new contract
-	)
-	pubSubReceipt = EthContractHelper.DeployContract(
-		w3=w3,
-		contract=pubSubContract,
-		arguments=[],
-		privKey=privKey,
-		gas=None, # let web3 estimate
-		value=0,
-		confirmPrompt=False # don't prompt for confirmation
-	)
-	pubSubAddr = pubSubReceipt.contractAddress
-	print('PubSubService contract deployed at {}'.format(pubSubAddr))
-	print()
 
 	# select three stakeholders
 	with open(CHECKSUM_KEYS_PATH, 'r') as f:
@@ -201,6 +215,200 @@ def RunTests() -> None:
 	)
 	assert revokeState == True, 'Enclave should be revoked after 2 votes'
 	print()
+
+
+def RunConflictMsgRevokerTests(
+	w3: Web3,
+	pubSubAddr: str,
+	decentSvrCertMgrAddr: str,
+) -> None:
+	# setup sending account
+	privKey = EthContractHelper.SetupSendingAccount(
+		w3=w3,
+		account=0, # use account 0
+		keyJson=CHECKSUM_KEYS_PATH
+	)
+
+	# deploy ConflictingMessageRevoker contract
+	print('Deploying ConflictingMessageRevoker contract...')
+	revokerContract = EthContractHelper.LoadContract(
+		w3=w3,
+		projConf=PROJECT_CONFIG_PATH,
+		contractName='ConflictingMessageRevoker',
+		release=None, # use locally built contract
+		address=None, # deploy new contract
+	)
+	revokerReceipt = EthContractHelper.DeployContract(
+		w3=w3,
+		contract=revokerContract,
+		arguments=[ pubSubAddr, decentSvrCertMgrAddr ],
+		privKey=privKey,
+		gas=None, # let web3 estimate
+		value=0,
+		confirmPrompt=False # don't prompt for confirmation
+	)
+	revokerAddr = revokerReceipt.contractAddress
+	print('ConflictingMessageRevoker contract deployed at {}'.format(revokerAddr))
+	revokerContract = EthContractHelper.LoadContract(
+		w3=w3,
+		projConf=PROJECT_CONFIG_PATH,
+		contractName='ConflictingMessageRevoker',
+		release=None, # use locally built contract
+		address=revokerAddr
+	)
+	print()
+
+	conflicts = LoadConflictMsg(0, 0, 1)
+	print('report conflict msg to revoke enclave {}'.format(
+		conflicts['enclaveHash']
+	))
+	reportReceipt = EthContractHelper.CallContractFunc(
+		w3=w3,
+		contract=revokerContract,
+		funcName='reportConflicts',
+		arguments=[
+			'0x' + conflicts['msgIdHash'],
+			'0x' + conflicts['msgContent1Hash'],
+			'0x' + conflicts['msg1SignR'],
+			'0x' + conflicts['msg1SignS'],
+			'0x' + conflicts['msgContent2Hash'],
+			'0x' + conflicts['msg2SignR'],
+			'0x' + conflicts['msg2SignS'],
+			LoadDecentSvrCertDer(0),
+			LoadDecentAppCertDer(0, 0),
+		 ],
+		privKey=privKey,
+		confirmPrompt=False # don't prompt for confirmation
+	)
+	assert CheckEnclaveIdInReceipt(reportReceipt, conflicts['enclaveHash']), \
+		'Enclave ID not in receipt'
+	revokeState = EthContractHelper.CallContractFunc(
+		w3=w3,
+		contract=revokerContract,
+		funcName='isRevoked',
+		arguments=[ '0x' + conflicts['enclaveHash'] ],
+		privKey=None,
+		confirmPrompt=False # don't prompt for confirmation
+	)
+	assert revokeState == True, 'Enclave should be revoked after 2 votes'
+	print()
+
+
+def RunTests() -> None:
+	# connect to ganache
+	ganacheUrl = 'http://localhost:{}'.format(GANACHE_PORT)
+	w3 = Web3(Web3.HTTPProvider(ganacheUrl))
+	while not w3.is_connected():
+		print('Attempting to connect to ganache...')
+		time.sleep(1)
+	print('Connected to ganache')
+
+	# checksum keys
+	GanacheAccounts.ChecksumGanacheKeysFile(
+		CHECKSUM_KEYS_PATH,
+		GANACHE_KEYS_PATH
+	)
+
+	# setup account
+	privKey = EthContractHelper.SetupSendingAccount(
+		w3=w3,
+		account=0, # use account 0
+		keyJson=CHECKSUM_KEYS_PATH
+	)
+
+	# deploy PubSubService contract
+	print('Deploying PubSubService contract...')
+	pubSubContract = EthContractHelper.LoadContract(
+		w3=w3,
+		projConf=PROJECT_CONFIG_PATH,
+		contractName='PubSubService',
+		release=None, # use locally built contract
+		address=None, # deploy new contract
+	)
+	pubSubReceipt = EthContractHelper.DeployContract(
+		w3=w3,
+		contract=pubSubContract,
+		arguments=[],
+		privKey=privKey,
+		gas=None, # let web3 estimate
+		value=0,
+		confirmPrompt=False # don't prompt for confirmation
+	)
+	pubSubAddr = pubSubReceipt.contractAddress
+	print('PubSubService contract deployed at {}'.format(pubSubAddr))
+	print()
+
+	# deploy IASRootCertMgr contract
+	print('Deploying IASRootCertMgr contract...')
+	iasRootContract = EthContractHelper.LoadContract(
+		w3=w3,
+		projConf=PROJECT_CONFIG_PATH,
+		contractName='IASRootCertMgr',
+		release=None, # use locally built contract
+		address=None, # deploy new contract
+	)
+	iasRootReceipt = EthContractHelper.DeployContract(
+		w3=w3,
+		contract=iasRootContract,
+		arguments=[ LoadIASRootCertDer() ],
+		privKey=privKey,
+		gas=None, # let web3 estimate
+		value=0,
+		confirmPrompt=False # don't prompt for confirmation
+	)
+	iasRootAddr = iasRootReceipt.contractAddress
+	print('IASRootCertMgr contract deployed at {}'.format(iasRootAddr))
+	print()
+
+	# deploy IASReportCertMgr contract
+	print('Deploying IASReportCertMgr contract...')
+	iasReportContract = EthContractHelper.LoadContract(
+		w3=w3,
+		projConf=PROJECT_CONFIG_PATH,
+		contractName='IASReportCertMgr',
+		release=None, # use locally built contract
+		address=None, # deploy new contract
+	)
+	iasReportReceipt = EthContractHelper.DeployContract(
+		w3=w3,
+		contract=iasReportContract,
+		arguments=[ iasRootAddr ],
+		privKey=privKey,
+		gas=None, # let web3 estimate
+		value=0,
+		confirmPrompt=False # don't prompt for confirmation
+	)
+	iasReportAddr = iasReportReceipt.contractAddress
+	print('IASReportCertMgr contract deployed at {}'.format(iasReportAddr))
+	print()
+
+	# deploy DecentServerCertMgr contract
+	print('Deploying DecentServerCertMgr contract...')
+	decentSvrContract = EthContractHelper.LoadContract(
+		w3=w3,
+		projConf=PROJECT_CONFIG_PATH,
+		contractName='DecentServerCertMgr',
+		release=None, # use locally built contract
+		address=None, # deploy new contract
+	)
+	decentSvrReceipt = EthContractHelper.DeployContract(
+		w3=w3,
+		contract=decentSvrContract,
+		arguments=[ iasReportAddr ],
+		privKey=privKey,
+		gas=None, # let web3 estimate
+		value=0,
+		confirmPrompt=False # don't prompt for confirmation
+	)
+	decentSvrAddr = decentSvrReceipt.contractAddress
+	print('DecentServerCertMgr contract deployed at {}'.format(decentSvrAddr))
+	print()
+
+	# Run VotingRevoker tests
+	RunVotingRevokerTests(w3, pubSubAddr)
+
+	# Run ConflictingMessageRevoker tests
+	RunConflictMsgRevokerTests(w3, pubSubAddr, decentSvrAddr)
 
 
 def StopGanache(ganacheProc: subprocess.Popen) -> None:

@@ -11,14 +11,10 @@ import "remix_tests.sol";
 import "remix_accounts.sol";
 
 
-import {
-    PubSubService
-} from "../../libs/DecentPubSub/PubSub/PubSubService.sol";
-
 import {VotingRevoker} from "../../contracts/VotingRevoker.sol";
 
 import {RevokeSubscriber} from "../RevokeSubscriber.sol";
-import {VotingContract} from "./VotingContract.sol";
+import {VotingContract} from "./01_VotingContract.sol";
 
 
 contract VotingRevokerTest {
@@ -34,7 +30,7 @@ contract VotingRevokerTest {
         stakeHolders[2] = address(new VotingContract());
         m_stakeHolders = stakeHolders;
 
-        m_pubSubSvcAddr = address(new PubSubService());
+        m_pubSubSvcAddr = 0x80922Db6752eCe1C2DeFA54Beb8FB984E649308B;
         m_revokerAddr =
             address(new VotingRevoker(m_pubSubSvcAddr, m_stakeHolders));
     }

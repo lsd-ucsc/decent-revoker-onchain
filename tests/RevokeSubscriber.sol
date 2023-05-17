@@ -30,4 +30,9 @@ contract RevokeSubscriber {
             value: msg.value
         }(pubAddr);
     }
+
+    function reset() external {
+        m_enclaveId = bytes32(0);
+    }
+
 }
