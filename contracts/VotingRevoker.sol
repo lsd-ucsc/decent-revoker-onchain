@@ -1,102 +1,100 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+
+import {
+    Interface_EventManager
+} from "../libs/DecentPubSub/PubSub/Interface_EventManager.sol";
+import {
+    Interface_PubSubService
+} from "../libs/DecentPubSub/PubSub/Interface_PubSubService.sol";
+
+
 contract VotingRevoker {
 
     //===== structs =====
 
     struct VoteStruct {
         uint numVotes;
-        mapping (address => bool) stakeholder;
+        mapping(address => bool) stakeholder;
     }
 
     //===== member variables =====
 
-    uint m_vote_threshold;
+    uint public m_voteThreshold;
+    address m_eventMgrAddr;
 
-    mapping(bytes32 => bool) m_enclaveIds;
     mapping(address => bool) m_stakeHolders;
-    mapping (bytes32 => bool) m_revoked;
+    mapping(bytes32 => bool) m_revoked;
 
     // map enclaves to vote struct {numvotes, voters(map)}
-    mapping (bytes32 => VoteStruct) m_votes;
+    mapping(bytes32 => VoteStruct) m_votes;
 
     //===== Constructor =====
 
     constructor(
-        bytes32[] memory enclaveIds,
+        address pubSubServiceAddr,
         address[] memory stakeholders
     )
     {
         // we need at least 3 stakeholders to enforce a vote threshold of 2/3
         require(
             stakeholders.length >= 3,
-            "must have at least three stakeholders"
+            "must have at least 3 stakeholders"
         );
 
-        m_vote_threshold = (stakeholders.length / 3) * 2;
-
-        for (uint i = 0; i < enclaveIds.length; i++) {
-            m_votes[enclaveIds[i]].numVotes = 0;
+        // make sure all stakeholders are unique
+        for (uint i = 0; i < stakeholders.length; i++) {
+            for (uint j = i + 1; j < stakeholders.length; j++) {
+                require(
+                    stakeholders[i] != stakeholders[j],
+                    "stakeholders must be unique"
+                );
+            }
         }
 
-        for (uint i = 0; i < enclaveIds.length; i++) {
-            m_enclaveIds[enclaveIds[i]] = true;
+        m_voteThreshold = (stakeholders.length * 2) / 3;
+        // multiply first to increase precision
+        if (stakeholders.length % 2 == 0) {
+            // if we have an even number of stakeholders, we need to increase
+            // the threshold by 1 to ensure we have a majority
+            m_voteThreshold++;
         }
 
         for (uint i = 0; i < stakeholders.length; i++) {
             m_stakeHolders[stakeholders[i]] = true;
         }
 
+        m_eventMgrAddr = Interface_PubSubService(pubSubServiceAddr).register();
     }
 
     //===== functions =====
 
-    function Vote(
-        address contractAddr,
-        bytes32 enclaveId,
-        bytes32 sigR,
-        bytes32 sigS
-    )
-    public
-    {
-        // contract must be this contract
-        // require (contractAddr == address(this), "invalid contract address");
-
-        // enclave must exist
-        require (m_enclaveIds[enclaveId] == true, "enclave not found");
-
-        // enclave has not been revoked yet
-        require (m_revoked[enclaveId] == false, "enclave already revoked");
-
-        bytes memory concatenated = bytes.concat(bytes20(contractAddr), enclaveId);
-        bytes32 message = sha256(concatenated);
-
-        bool validStakeholder = false;
-        address stakeholder;
-
-        for (uint8 recoverId = 27; recoverId <= 28; recoverId++) {
-            address signer = ecrecover(message, recoverId, sigR, sigS);
-
-            if (m_stakeHolders[signer]) {
-                validStakeholder = true;
-                stakeholder = signer;
-                break;
-            }
-        }
-
+    function revokeVote(bytes32 enclaveId) public {
         // must be a valid stakeholder to vote
-        require (validStakeholder == true, "invalid stakeholder");
+        require(m_stakeHolders[msg.sender], "invalid stakeholder");
+
+        VoteStruct storage vote = m_votes[enclaveId];
 
         // stakeholder can only vote once
-        require (!m_votes[enclaveId].stakeholder[stakeholder], "stakeholder already voted");
+        require (!vote.stakeholder[msg.sender], "stakeholder already voted");
 
-        m_votes[enclaveId].stakeholder[stakeholder] = true;
-        m_votes[enclaveId].numVotes++;
+        // record vote
+        vote.stakeholder[msg.sender] = true;
+        vote.numVotes++;
 
-        // if number of votes more than threshold, revoke
-        if (m_votes[enclaveId].numVotes == m_vote_threshold) {
+        // if it's not revoked and we have enough votes, revoke it
+        if (!m_revoked[enclaveId] && vote.numVotes >= m_voteThreshold) {
             m_revoked[enclaveId] = true;
+
+            Interface_EventManager(m_eventMgrAddr).notifySubscribers(
+                abi.encodePacked(enclaveId)
+            );
         }
-    } // end Vote()
+    } // end revokeVote()
+
+    function isRevoked(bytes32 enclaveId) public view returns (bool) {
+        return m_revoked[enclaveId];
+    } // end isRevoked()
+
 }

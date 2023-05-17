@@ -1,7 +1,7 @@
 {
 	"contractModuleMap": {
-		"IASRootCertMgr"       : "contracts",
-		"IASReportCertMgr"     : "contracts"
+		"PubSubService"       : "../libs/DecentPubSub/build/PubSub",
+		"VotingRevoker"       : "contracts"
 	},
 	"releaseUrl": "https://github.com/lsd-ucsc/decent-ra-onchain/releases/download/{version}/{contract}",
 	"buildDir"  : "build"

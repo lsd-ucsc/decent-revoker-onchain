@@ -8,6 +8,7 @@
 ###
 
 
+import json
 import logging
 import os
 import signal
@@ -72,6 +73,115 @@ def RunTests() -> None:
 		account=0, # use account 0
 		keyJson=CHECKSUM_KEYS_PATH
 	)
+
+	# deploy PubSubService contract
+	print('Deploying PubSubService contract...')
+	pubSubContract = EthContractHelper.LoadContract(
+		w3=w3,
+		projConf=PROJECT_CONFIG_PATH,
+		contractName='PubSubService',
+		release=None, # use locally built contract
+		address=None, # deploy new contract
+	)
+	pubSubReceipt = EthContractHelper.DeployContract(
+		w3=w3,
+		contract=pubSubContract,
+		arguments=[],
+		privKey=privKey,
+		gas=None, # let web3 estimate
+		value=0,
+		confirmPrompt=False # don't prompt for confirmation
+	)
+	pubSubAddr = pubSubReceipt.contractAddress
+	print('PubSubService contract deployed at {}'.format(pubSubAddr))
+	print()
+
+	# select three stakeholders
+	with open(CHECKSUM_KEYS_PATH, 'r') as f:
+		keys = json.load(f)
+		stakeholders = [ x for x in keys['addresses'].keys() ]
+	stakeholders = stakeholders[:3]
+	print('Stakeholders are: {}'.format(stakeholders))
+
+	# deploy VotingRevoker contract
+	print('Deploying VotingRevoker contract...')
+	votingContract = EthContractHelper.LoadContract(
+		w3=w3,
+		projConf=PROJECT_CONFIG_PATH,
+		contractName='VotingRevoker',
+		release=None, # use locally built contract
+		address=None, # deploy new contract
+	)
+	votingReceipt = EthContractHelper.DeployContract(
+		w3=w3,
+		contract=votingContract,
+		arguments=[ pubSubAddr, stakeholders ],
+		privKey=privKey,
+		gas=None, # let web3 estimate
+		value=0,
+		confirmPrompt=False # don't prompt for confirmation
+	)
+	votingAddr = votingReceipt.contractAddress
+	print('VotingRevoker contract deployed at {}'.format(votingAddr))
+	votingContract = EthContractHelper.LoadContract(
+		w3=w3,
+		projConf=PROJECT_CONFIG_PATH,
+		contractName='VotingRevoker',
+		release=None, # use locally built contract
+		address=votingAddr
+	)
+	print()
+
+	# revoke an enclave
+	enclaveId = '0x1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF'
+	privKey = EthContractHelper.SetupSendingAccount(
+		w3=w3,
+		account=0, # use account 0
+		keyJson=CHECKSUM_KEYS_PATH
+	)
+	print('{} votes to revoke enclave {}'.format(stakeholders[0], enclaveId))
+	voteReceipt = EthContractHelper.CallContractFunc(
+		w3=w3,
+		contract=votingContract,
+		funcName='revokeVote',
+		arguments=[ enclaveId ],
+		privKey=privKey,
+		confirmPrompt=False # don't prompt for confirmation
+	)
+	revokeState = EthContractHelper.CallContractFunc(
+		w3=w3,
+		contract=votingContract,
+		funcName='isRevoked',
+		arguments=[ enclaveId ],
+		privKey=None,
+		confirmPrompt=False # don't prompt for confirmation
+	)
+	assert revokeState == False, 'Enclave should not be revoked with only 1 vote'
+	# stakeholder 1
+	privKey = EthContractHelper.SetupSendingAccount(
+		w3=w3,
+		account=1, # use account 1
+		keyJson=CHECKSUM_KEYS_PATH
+	)
+	print('{} votes to revoke enclave {}'.format(stakeholders[1], enclaveId))
+	voteReceipt = EthContractHelper.CallContractFunc(
+		w3=w3,
+		contract=votingContract,
+		funcName='revokeVote',
+		arguments=[ enclaveId ],
+		privKey=privKey,
+		gas=99999999,
+		confirmPrompt=False # don't prompt for confirmation
+	)
+	revokeState = EthContractHelper.CallContractFunc(
+		w3=w3,
+		contract=votingContract,
+		funcName='isRevoked',
+		arguments=[ enclaveId ],
+		privKey=None,
+		confirmPrompt=False # don't prompt for confirmation
+	)
+	assert revokeState == True, 'Enclave should be revoked after 2 votes'
 
 
 def StopGanache(ganacheProc: subprocess.Popen) -> None:
