@@ -52,6 +52,23 @@ def StartGanache() -> subprocess.Popen:
 	return proc
 
 
+def CheckEnclaveIdInReceipt(receipt: dict, enclaveId: str) -> bool:
+	if 'logs' not in receipt:
+		return False
+
+	enclaveIdBytes = bytes.fromhex(enclaveId[2:])
+
+	for log in receipt['logs']:
+		if 'data' not in log:
+			continue
+		if len(log['data']) < (3 * 32):
+			continue
+		if log['data'][2 * 32:] == enclaveIdBytes:
+			return True
+
+	return False
+
+
 def RunTests() -> None:
 	# connect to ganache
 	ganacheUrl = 'http://localhost:{}'.format(GANACHE_PORT)
@@ -170,9 +187,10 @@ def RunTests() -> None:
 		funcName='revokeVote',
 		arguments=[ enclaveId ],
 		privKey=privKey,
-		gas=99999999,
+		gas=9999999,
 		confirmPrompt=False # don't prompt for confirmation
 	)
+	assert CheckEnclaveIdInReceipt(voteReceipt, enclaveId), 'Enclave ID not in receipt'
 	revokeState = EthContractHelper.CallContractFunc(
 		w3=w3,
 		contract=votingContract,
@@ -182,6 +200,7 @@ def RunTests() -> None:
 		confirmPrompt=False # don't prompt for confirmation
 	)
 	assert revokeState == True, 'Enclave should be revoked after 2 votes'
+	print()
 
 
 def StopGanache(ganacheProc: subprocess.Popen) -> None:
