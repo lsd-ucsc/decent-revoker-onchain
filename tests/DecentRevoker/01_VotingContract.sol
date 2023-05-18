@@ -2,7 +2,7 @@
 pragma solidity >=0.4.17 <0.9.0;
 
 
-import {VotingRevoker} from "../../contracts/VotingRevoker.sol";
+import {VotingRevoker} from "../../DecentRevoker/VotingRevoker.sol";
 
 
 contract VotingContract {

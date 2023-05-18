@@ -7,19 +7,23 @@ import {
 } from "../libs/DecentPubSub/PubSub/Interface_PubSubService.sol";
 
 
-contract RevokeSubscriber {
+contract KeyRevokeSubscriber {
 
-    bytes32 public m_enclaveId;
+    address public m_keyAddr;
 
     constructor() {
     }
 
     function onNotify(bytes memory data) external {
-        bytes32 enclaveId;
+        bytes20 keyAddr;
+        require(data.length == 20, "invalid key addr length");
         assembly {
-            enclaveId := mload(add(data, 32))
+            keyAddr := and(
+                mload(add(data, 32)),
+                0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000000
+            )
         }
-        m_enclaveId = enclaveId;
+        m_keyAddr = address(keyAddr);
     }
 
     function subscribe(address pubSubSvcAddr, address pubAddr)
@@ -32,7 +36,7 @@ contract RevokeSubscriber {
     }
 
     function reset() external {
-        m_enclaveId = bytes32(0);
+        m_keyAddr = address(0);
     }
 
 }

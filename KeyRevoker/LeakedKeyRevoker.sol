@@ -2,9 +2,7 @@
 pragma solidity ^0.8.17;
 
 
-import {DecentAppCert} from "libs/DecentRA/contracts/DecentAppCert.sol";
-import {DecentCertChain} from "libs/DecentRA/contracts/DecentCertChain.sol";
-import {LibSecp256k1Sha256} from "libs/DecentRA/contracts/LibSecp256k1Sha256.sol";
+import {LibSecp256k1Sha256} from "../libs/DecentRA/contracts/LibSecp256k1Sha256.sol";
 
 import {
     Interface_EventManager
@@ -15,7 +13,6 @@ import {
 
 
 contract LeakedKeyRevoker {
-    using DecentAppCert for DecentAppCert.DecentApp;
 
     //===== constants =====
 
@@ -23,16 +20,13 @@ contract LeakedKeyRevoker {
 
     //===== member variables =====
 
-    mapping(bytes32 => bool) m_revoked;
+    mapping(address => bool) m_revoked;
 
     address m_eventMgrAddr;
-    address m_decentSvrCertMgrAddr;
 
     //===== Constructor =====
 
-    constructor(address pubSubServiceAddr, address decentSvrCertMgr) {
-        m_decentSvrCertMgrAddr = decentSvrCertMgr;
-
+    constructor(address pubSubServiceAddr) {
         m_eventMgrAddr = Interface_PubSubService(pubSubServiceAddr).register();
     }
 
@@ -41,21 +35,11 @@ contract LeakedKeyRevoker {
     function submitRevokeSign(
         bytes32 sigR,
         bytes32 sigS,
-        bytes memory svrCertDer,
-        bytes memory appCertDer
+        address signerKeyAddr
     )
         external
     {
-        // verify the Decent certificate chain
-        DecentAppCert.DecentApp memory appCert;
-        DecentCertChain.verifyCertChain(
-            appCert,
-            m_decentSvrCertMgrAddr,
-            svrCertDer,
-            appCertDer
-        );
-
-        if (m_revoked[appCert.appEnclaveHash]) {
+        if (m_revoked[signerKeyAddr]) {
             // if the enclave has already been revoked, we don't need to do
             // anything
             return;
@@ -64,7 +48,7 @@ contract LeakedKeyRevoker {
         // require that the key was used to sign the message above
         require(
             LibSecp256k1Sha256.verifySignHash(
-                appCert.appKeyAddr,
+                signerKeyAddr,
                 REVOKING_HASH,
                 sigR,
                 sigS
@@ -72,15 +56,15 @@ contract LeakedKeyRevoker {
             "revoke signature invalid"
         );
 
-        m_revoked[appCert.appEnclaveHash] = true;
+        m_revoked[signerKeyAddr] = true;
 
         Interface_EventManager(m_eventMgrAddr).notifySubscribers(
-            abi.encodePacked(appCert.appEnclaveHash)
+            abi.encodePacked(signerKeyAddr)
         );
     } // end submitRevokeSign()
 
-    function isRevoked(bytes32 enclaveId) external view returns (bool) {
-        return m_revoked[enclaveId];
+    function isRevoked(address keyAddr) external view returns (bool) {
+        return m_revoked[keyAddr];
     } // end isRevoked()
 
 }
