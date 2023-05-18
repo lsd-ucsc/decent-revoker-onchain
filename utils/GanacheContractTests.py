@@ -53,6 +53,7 @@ def StartGanache() -> subprocess.Popen:
 		'-d',
 		'-a', str(GANACHE_NUM_KEYS),
 		'--network-id', str(GANACHE_NET_ID),
+		'--chain.hardfork', 'shanghai',
 		'--wallet.accountKeysPath', str(GANACHE_KEYS_PATH),
 	]
 	proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

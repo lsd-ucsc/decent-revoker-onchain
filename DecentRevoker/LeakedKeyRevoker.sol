@@ -2,9 +2,9 @@
 pragma solidity ^0.8.17;
 
 
-import {DecentAppCert} from "libs/DecentRA/contracts/DecentAppCert.sol";
-import {DecentCertChain} from "libs/DecentRA/contracts/DecentCertChain.sol";
-import {LibSecp256k1Sha256} from "libs/DecentRA/contracts/LibSecp256k1Sha256.sol";
+import {DecentAppCert} from "../libs/DecentRA/contracts/DecentAppCert.sol";
+import {DecentCertChain} from "../libs/DecentRA/contracts/DecentCertChain.sol";
+import {LibSecp256k1Sha256} from "../libs/DecentRA/contracts/LibSecp256k1Sha256.sol";
 
 import {
     Interface_EventManager

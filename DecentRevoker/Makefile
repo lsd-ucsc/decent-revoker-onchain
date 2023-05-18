@@ -1,4 +1,4 @@
-MODULE_NAME := contracts
+MODULE_NAME := DecentRevoker
 CONTRACTS   := \
 	VotingRevoker \
 	ConflictingMessageRevoker \

@@ -10,7 +10,7 @@ import "remix_tests.sol";
 import "remix_accounts.sol";
 
 
-import {LeakedKeyRevoker} from "../../contracts/LeakedKeyRevoker.sol";
+import {LeakedKeyRevoker} from "../../DecentRevoker/LeakedKeyRevoker.sol";
 
 import {RevokeSubscriber} from "../RevokeSubscriber.sol";
 import {TestInputs} from "../TestInputs.sol";

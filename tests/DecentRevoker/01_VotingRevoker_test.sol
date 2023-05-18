@@ -11,7 +11,7 @@ import "remix_tests.sol";
 import "remix_accounts.sol";
 
 
-import {VotingRevoker} from "../../contracts/VotingRevoker.sol";
+import {VotingRevoker} from "../../DecentRevoker/VotingRevoker.sol";
 
 import {RevokeSubscriber} from "../RevokeSubscriber.sol";
 import {VotingContract} from "./01_VotingContract.sol";

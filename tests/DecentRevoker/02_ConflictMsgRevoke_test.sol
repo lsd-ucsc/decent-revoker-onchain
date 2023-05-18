@@ -12,7 +12,7 @@ import "remix_accounts.sol";
 
 import {
     ConflictingMessageRevoker
-} from "../../contracts/ConflictingMessageRevoker.sol";
+} from "../../DecentRevoker/ConflictingMessageRevoker.sol";
 
 import {RevokeSubscriber} from "../RevokeSubscriber.sol";
 import {TestInputs} from "../TestInputs.sol";

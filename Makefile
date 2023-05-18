@@ -1,5 +1,5 @@
 MODULES        := \
-	contracts
+	DecentRevoker
 SOLC_VERSION   := v0.8.20
 MKFILE_PATH    := $(abspath $(lastword $(MAKEFILE_LIST)))
 CURRENT_DIR    := $(dir $(MKFILE_PATH))
