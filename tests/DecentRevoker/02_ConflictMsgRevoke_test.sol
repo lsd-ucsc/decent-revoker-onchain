@@ -14,7 +14,7 @@ import {
     ConflictingMessageRevoker
 } from "../../DecentRevoker/ConflictingMessageRevoker.sol";
 
-import {RevokeSubscriber} from "../RevokeSubscriber.sol";
+import {DecentRevokeSubscriber} from "../DecentRevokeSubscriber.sol";
 import {TestInputs} from "../TestInputs.sol";
 
 
@@ -42,7 +42,7 @@ contract ConflictMsgRevoke_testSuit {
                 m_decentCertMgrAddr
             ));
 
-        RevokeSubscriber subs = new RevokeSubscriber();
+        DecentRevokeSubscriber subs = new DecentRevokeSubscriber();
         subs.subscribe{
             value: msg.value
         }(m_pubSubSvcAddr, m_revokerAddr);
@@ -122,9 +122,9 @@ contract ConflictMsgRevoke_testSuit {
     }
 
     function okReportTest1() public {
-        RevokeSubscriber(m_subsAddr).reset();
+        DecentRevokeSubscriber(m_subsAddr).reset();
         Assert.equal(
-            RevokeSubscriber(m_subsAddr).m_enclaveId(),
+            DecentRevokeSubscriber(m_subsAddr).m_enclaveId(),
             bytes32(0),
             "should be reset"
         );
@@ -154,16 +154,16 @@ contract ConflictMsgRevoke_testSuit {
             "should be revoked"
         );
         Assert.equal(
-            RevokeSubscriber(m_subsAddr).m_enclaveId(),
+            DecentRevokeSubscriber(m_subsAddr).m_enclaveId(),
             TestInputs.DECENT_APP_01_ENCLAVE_HASH,
             "subscriber should be notified"
         );
     }
 
     function okReportTest2() public {
-        RevokeSubscriber(m_subsAddr).reset();
+        DecentRevokeSubscriber(m_subsAddr).reset();
         Assert.equal(
-            RevokeSubscriber(m_subsAddr).m_enclaveId(),
+            DecentRevokeSubscriber(m_subsAddr).m_enclaveId(),
             bytes32(0),
             "should be reset"
         );
@@ -193,7 +193,7 @@ contract ConflictMsgRevoke_testSuit {
             "should be revoked"
         );
         Assert.equal(
-            RevokeSubscriber(m_subsAddr).m_enclaveId(),
+            DecentRevokeSubscriber(m_subsAddr).m_enclaveId(),
             TestInputs.DECENT_APP_02_ENCLAVE_HASH,
             "subscriber should be notified"
         );

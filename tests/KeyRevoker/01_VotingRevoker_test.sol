@@ -11,9 +11,10 @@ import "remix_tests.sol";
 import "remix_accounts.sol";
 
 
-import {VotingRevoker} from "../../DecentRevoker/VotingRevoker.sol";
+import {VotingRevoker} from "../../KeyRevoker/VotingRevoker.sol";
 
-import {DecentRevokeSubscriber} from "../DecentRevokeSubscriber.sol";
+import {KeyRevokeSubscriber} from "../KeyRevokeSubscriber.sol";
+import {PredeployA_PubSub_Addr} from "./00_PredeployA_PubSub_Addr.sol";
 import {VotingContract} from "./01_VotingContract.sol";
 
 
@@ -30,7 +31,7 @@ contract VotingRevokerTest {
         stakeHolders[2] = address(new VotingContract());
         m_stakeHolders = stakeHolders;
 
-        m_pubSubSvcAddr = 0x80922Db6752eCe1C2DeFA54Beb8FB984E649308B;
+        m_pubSubSvcAddr = PredeployA_PubSub_Addr.ADDR;
         m_revokerAddr =
             address(new VotingRevoker(m_pubSubSvcAddr, m_stakeHolders));
     }
@@ -119,11 +120,11 @@ contract VotingRevokerTest {
     }
 
     function invalidStakeholderTest() public {
-        bytes32 enclaveId =
-            0x1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF;
+        address keyAddr =
+            0x1a07E81B3fe619735c36175Ee6B4E840f521f26e;
 
         VotingContract vc = new VotingContract();
-        try vc.doRevokeVote(m_revokerAddr, enclaveId) {
+        try vc.doRevokeVote(m_revokerAddr, keyAddr) {
             Assert.ok(false, "stakeholder should not be valid");
         } catch Error(string memory reason) {
             Assert.equal(
@@ -137,8 +138,8 @@ contract VotingRevokerTest {
     }
 
     function stakeholderDoubleVoteTest() public {
-        bytes32 enclaveId =
-            0x1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF;
+        address keyAddr =
+            0x1a07E81B3fe619735c36175Ee6B4E840f521f26e;
 
         address revokerAddr =
             address(new VotingRevoker(m_pubSubSvcAddr, m_stakeHolders));
@@ -147,7 +148,7 @@ contract VotingRevokerTest {
         {
             try VotingContract(m_stakeHolders[0]).doRevokeVote(
                 revokerAddr,
-                enclaveId
+                keyAddr
             ) {
                 Assert.ok(true, "stakeholder voted successfully");
             } catch Error(string memory reason) {
@@ -161,7 +162,7 @@ contract VotingRevokerTest {
         {
             try VotingContract(m_stakeHolders[0]).doRevokeVote(
                 revokerAddr,
-                enclaveId
+                keyAddr
             ) {
                 Assert.ok(false, "stakeholder should not be able to vote twice");
             } catch Error(string memory reason) {
@@ -178,13 +179,13 @@ contract VotingRevokerTest {
 
     /// #value: 1000000000000000000
     function voteTest() public payable {
-        bytes32 enclaveId =
-            0x1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF;
+        address keyAddr =
+            0x1a07E81B3fe619735c36175Ee6B4E840f521f26e;
 
         address revokerAddr =
             address(new VotingRevoker(m_pubSubSvcAddr, m_stakeHolders));
 
-        DecentRevokeSubscriber sub = new DecentRevokeSubscriber();
+        KeyRevokeSubscriber sub = new KeyRevokeSubscriber();
         sub.subscribe{
             value: msg.value
         }(m_pubSubSvcAddr, revokerAddr);
@@ -192,7 +193,7 @@ contract VotingRevokerTest {
         // first stakeholder vote
         try VotingContract(m_stakeHolders[0]).doRevokeVote(
             revokerAddr,
-            enclaveId
+            keyAddr
         ) {
             Assert.ok(true, "stakeholder voted successfully");
         } catch Error(string memory reason) {
@@ -202,7 +203,7 @@ contract VotingRevokerTest {
         }
 
         Assert.ok(
-            !VotingRevoker(revokerAddr).isRevoked(enclaveId),
+            !VotingRevoker(revokerAddr).isRevoked(keyAddr),
             "should not be revoked"
         );
 
@@ -215,7 +216,7 @@ contract VotingRevokerTest {
         // second stakeholder vote
         try VotingContract(m_stakeHolders[1]).doRevokeVote(
             revokerAddr,
-            enclaveId
+            keyAddr
         ) {
             Assert.ok(true, "stakeholder voted successfully");
         } catch Error(string memory reason) {
@@ -225,19 +226,19 @@ contract VotingRevokerTest {
         }
 
         Assert.ok(
-            VotingRevoker(revokerAddr).isRevoked(enclaveId),
+            VotingRevoker(revokerAddr).isRevoked(keyAddr),
             "should be revoked"
         );
         Assert.equal(
-            sub.m_enclaveId(),
-            enclaveId,
-            "enclaveId should match"
+            sub.m_keyAddr(),
+            keyAddr,
+            "keyAddr should match"
         );
 
         // third stakeholder vote
         try VotingContract(m_stakeHolders[2]).doRevokeVote(
             revokerAddr,
-            enclaveId
+            keyAddr
         ) {
             Assert.ok(true, "stakeholder voted successfully");
         } catch Error(string memory reason) {
@@ -247,7 +248,7 @@ contract VotingRevokerTest {
         }
 
         Assert.ok(
-            VotingRevoker(revokerAddr).isRevoked(enclaveId),
+            VotingRevoker(revokerAddr).isRevoked(keyAddr),
             "should be revoked"
         );
     } // end VoteTest

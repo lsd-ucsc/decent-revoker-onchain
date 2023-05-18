@@ -1,0 +1,10 @@
+{
+	"contractModuleMap": {
+		"PubSubService"             : "../libs/DecentPubSub/build/PubSub",
+		"VotingRevoker"             : "KeyRevoker",
+		"ConflictingMessageRevoker" : "KeyRevoker",
+		"LeakedKeyRevoker"          : "KeyRevoker"
+	},
+	"releaseUrl": "https://github.com/lsd-ucsc/decent-revoker-onchain/releases/download/{version}/{contract}",
+	"buildDir"  : "build"
+}
