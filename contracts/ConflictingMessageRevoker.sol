@@ -1,66 +1,78 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {Common} from "./Common.sol";
-import {DecentAppCert} from "libs/DecentRA/contracts/DecentAppCert.sol";
-import {DecentCertChain} from "libs/DecentRA/contracts/DecentCertChain.sol";
-import {Interface_DecentServerCertMgr} from "libs/DecentRA/contracts/Interface_DecentServerCertMgr.sol";
-import {LibSecp256k1Sha256} from "libs/DecentRA/contracts/LibSecp256k1Sha256.sol";
+
+import {DecentAppCert} from "../libs/DecentRA/contracts/DecentAppCert.sol";
+import {DecentCertChain} from "../libs/DecentRA/contracts/DecentCertChain.sol";
+import {LibSecp256k1Sha256} from "../libs/DecentRA/contracts/LibSecp256k1Sha256.sol";
+
+import {
+    Interface_EventManager
+} from "../libs/DecentPubSub/PubSub/Interface_EventManager.sol";
+import {
+    Interface_PubSubService
+} from "../libs/DecentPubSub/PubSub/Interface_PubSubService.sol";
+
 
 contract ConflictingMessageRevoker {
+
     using DecentAppCert for DecentAppCert.DecentApp;
 
     //===== member variables =====
 
-    mapping(bytes32 => bool) m_enclaveIds;
     mapping(bytes32 => bool) m_revoked;
 
-    address m_decentSvrMgr;
-    DecentAppCert.DecentApp m_appCert;
+    address m_eventMgrAddr;
+    address m_decentSvrCertMgrAddr;
 
     //===== Constructor =====
 
-    constructor(bytes32[] memory enclaveIds, address decentSvrMgr) {
-        for (uint i = 0; i < enclaveIds.length; i++) {
-            m_enclaveIds[enclaveIds[i]] = true;
-        }
+    constructor(address pubSubServiceAddr, address decentSvrCertMgr) {
+        m_decentSvrCertMgrAddr = decentSvrCertMgr;
 
-        m_decentSvrMgr = decentSvrMgr;
+        m_eventMgrAddr = Interface_PubSubService(pubSubServiceAddr).register();
     }
 
     //===== functions =====
 
-    function Vote(
-        bytes32 event1,
+    function reportConflicts(
+        bytes32 eventId,
         bytes32 content1,
         bytes32 message1SigR,
         bytes32 message1SigS,
-        bytes32 event2,
         bytes32 content2,
         bytes32 message2SigR,
         bytes32 message2SigS,
+        bytes memory svrCertDer,
         bytes memory appCertDer
     )
-    public
+        external
     {
-        // must be the same event
-        require(event1 == event2, "events must be the same");
-
         // must be different content
         require(content1 != content2, "contents must be different");
 
-        // load the DecentApp cert
+        // verify the Decent certificate chain
         DecentAppCert.DecentApp memory appCert;
-        appCert.loadCert(appCertDer, m_decentSvrMgr, m_decentSvrMgr);
-        m_appCert = appCert;
+        DecentCertChain.verifyCertChain(
+            appCert,
+            m_decentSvrCertMgrAddr,
+            svrCertDer,
+            appCertDer
+        );
 
-        bytes memory message1 = bytes.concat(event1, content1);
-        bytes memory message2 = bytes.concat(event2, content2);
+        if (m_revoked[appCert.appEnclaveHash]) {
+            // if the enclave has already been revoked, we don't need to do
+            // anything
+            return;
+        }
+
+        bytes memory message1 = bytes.concat(eventId, content1);
+        bytes memory message2 = bytes.concat(eventId, content2);
 
         // require that they are signed by the same App
         require(
             LibSecp256k1Sha256.verifySignMsg(
-                m_appCert.appKeyAddr,
+                appCert.appKeyAddr,
                 message1,
                 message1SigR,
                 message1SigS
@@ -70,7 +82,7 @@ contract ConflictingMessageRevoker {
 
         require(
             LibSecp256k1Sha256.verifySignMsg(
-                m_appCert.appKeyAddr,
+                appCert.appKeyAddr,
                 message2,
                 message2SigR,
                 message2SigS
@@ -78,6 +90,15 @@ contract ConflictingMessageRevoker {
             "message2 signature invalid"
         );
 
-        m_revoked[m_appCert.appEnclaveHash] = true;
-    } // end Vote()
+        m_revoked[appCert.appEnclaveHash] = true;
+
+        Interface_EventManager(m_eventMgrAddr).notifySubscribers(
+            abi.encodePacked(appCert.appEnclaveHash)
+        );
+    } // end reportConflicts()
+
+    function isRevoked(bytes32 enclaveId) external view returns (bool) {
+        return m_revoked[enclaveId];
+    } // end isRevoked()
+
 }
