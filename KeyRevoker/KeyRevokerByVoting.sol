@@ -10,7 +10,7 @@ import {
 } from "../libs/DecentPubSub/PubSub/Interface_PubSubService.sol";
 
 
-contract VotingRevoker {
+contract KeyRevokerByVoting {
 
     //===== structs =====
 

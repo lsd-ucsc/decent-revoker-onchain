@@ -11,19 +11,25 @@ import "remix_tests.sol";
 import "remix_accounts.sol";
 
 
-import {VotingRevoker} from "../../KeyRevoker/VotingRevoker.sol";
+import {KeyRevokerByVoting} from "../../KeyRevoker/KeyRevokerByVoting.sol";
 
 import {KeyRevokeSubscriber} from "../KeyRevokeSubscriber.sol";
 import {PredeployA_PubSub_Addr} from "./00_PredeployA_PubSub_Addr.sol";
 import {VotingContract} from "./01_VotingContract.sol";
 
 
-contract VotingRevokerTest {
+contract KeyRevokerByVoting_testSuit {
+
+    //===== member variables =====
 
     address[] m_stakeHolders;
     address m_pubSubSvcAddr;
     address m_revokerAddr;
 
+    //===== functions =====
+
+    /// 'beforeAll' runs before all other tests
+    /// More special functions are: 'beforeEach', 'beforeAll', 'afterEach' & 'afterAll'
     function beforeAll() public {
         address[] memory stakeHolders = new address[](3);
         stakeHolders[0] = address(new VotingContract());
@@ -33,7 +39,7 @@ contract VotingRevokerTest {
 
         m_pubSubSvcAddr = PredeployA_PubSub_Addr.ADDR;
         m_revokerAddr =
-            address(new VotingRevoker(m_pubSubSvcAddr, m_stakeHolders));
+            address(new KeyRevokerByVoting(m_pubSubSvcAddr, m_stakeHolders));
     }
 
     function notEnoughStakeholders() public {
@@ -41,7 +47,7 @@ contract VotingRevokerTest {
         stakeHolders[0] = TestsAccounts.getAccount(0);
         stakeHolders[1] = TestsAccounts.getAccount(1);
 
-        try new VotingRevoker(m_pubSubSvcAddr, stakeHolders) {
+        try new KeyRevokerByVoting(m_pubSubSvcAddr, stakeHolders) {
             Assert.ok(false, "should not be able to deploy with 2 stakeholders");
         } catch Error(string memory reason) {
             Assert.equal(
@@ -60,7 +66,7 @@ contract VotingRevokerTest {
         stakeHolders[1] = TestsAccounts.getAccount(1);
         stakeHolders[2] = TestsAccounts.getAccount(0);
 
-        try new VotingRevoker(m_pubSubSvcAddr, stakeHolders) {
+        try new KeyRevokerByVoting(m_pubSubSvcAddr, stakeHolders) {
             Assert.ok(
                 false,
                 "should not be able to deploy with duplicated stakeholders"
@@ -82,8 +88,8 @@ contract VotingRevokerTest {
         stakeHolders[1] = TestsAccounts.getAccount(1);
         stakeHolders[2] = TestsAccounts.getAccount(2);
 
-        try new VotingRevoker(m_pubSubSvcAddr, stakeHolders)
-            returns (VotingRevoker revoker)
+        try new KeyRevokerByVoting(m_pubSubSvcAddr, stakeHolders)
+            returns (KeyRevokerByVoting revoker)
         {
             Assert.equal(
                 revoker.m_voteThreshold(),
@@ -104,8 +110,8 @@ contract VotingRevokerTest {
         stakeHolders[2] = TestsAccounts.getAccount(2);
         stakeHolders[3] = TestsAccounts.getAccount(3);
 
-        try new VotingRevoker(m_pubSubSvcAddr, stakeHolders)
-            returns (VotingRevoker revoker)
+        try new KeyRevokerByVoting(m_pubSubSvcAddr, stakeHolders)
+            returns (KeyRevokerByVoting revoker)
         {
             Assert.equal(
                 revoker.m_voteThreshold(),
@@ -142,7 +148,7 @@ contract VotingRevokerTest {
             0x1a07E81B3fe619735c36175Ee6B4E840f521f26e;
 
         address revokerAddr =
-            address(new VotingRevoker(m_pubSubSvcAddr, m_stakeHolders));
+            address(new KeyRevokerByVoting(m_pubSubSvcAddr, m_stakeHolders));
 
         // first vote should succeed
         {
@@ -183,7 +189,7 @@ contract VotingRevokerTest {
             0x1a07E81B3fe619735c36175Ee6B4E840f521f26e;
 
         address revokerAddr =
-            address(new VotingRevoker(m_pubSubSvcAddr, m_stakeHolders));
+            address(new KeyRevokerByVoting(m_pubSubSvcAddr, m_stakeHolders));
 
         KeyRevokeSubscriber sub = new KeyRevokeSubscriber();
         sub.subscribe{
@@ -203,7 +209,7 @@ contract VotingRevokerTest {
         }
 
         Assert.ok(
-            !VotingRevoker(revokerAddr).isRevoked(keyAddr),
+            !KeyRevokerByVoting(revokerAddr).isRevoked(keyAddr),
             "should not be revoked"
         );
 
@@ -226,7 +232,7 @@ contract VotingRevokerTest {
         }
 
         Assert.ok(
-            VotingRevoker(revokerAddr).isRevoked(keyAddr),
+            KeyRevokerByVoting(revokerAddr).isRevoked(keyAddr),
             "should be revoked"
         );
         Assert.equal(
@@ -248,7 +254,7 @@ contract VotingRevokerTest {
         }
 
         Assert.ok(
-            VotingRevoker(revokerAddr).isRevoked(keyAddr),
+            KeyRevokerByVoting(revokerAddr).isRevoked(keyAddr),
             "should be revoked"
         );
     } // end VoteTest

@@ -32,7 +32,7 @@ BUILD_DIR    = os.path.join(ROOT_DIR, 'build')
 TESTS_DIR    = os.path.join(ROOT_DIR, 'tests')
 INPUTS_DIR   = os.path.join(TESTS_DIR, 'inputs')
 PYHELPER_DIR = os.path.join(UTILS_DIR, 'PyEthHelper')
-PROJECT_CONFIG_PATH = os.path.join(UTILS_DIR, 'key_revoker_conf.json')
+PROJECT_CONFIG_PATH = os.path.join(UTILS_DIR, 'project_conf.json')
 CHECKSUM_KEYS_PATH  = os.path.join(BUILD_DIR, 'ganache_keys_checksum.json')
 GANACHE_KEYS_PATH   = os.path.join(BUILD_DIR, 'ganache_keys.json')
 GANACHE_PORT     = 7545
@@ -170,7 +170,7 @@ def GenRevokeSign() -> dict:
 	return res
 
 
-def RunVotingRevokerTests(
+def RunKeyRevokerByVotingTests(
 	w3: Web3,
 	pubSubAddr: str,
 	gasCosts: Dict[str, int],
@@ -189,12 +189,12 @@ def RunVotingRevokerTests(
 	stakeholders = stakeholders[:3]
 	print('Stakeholders are: {}'.format(stakeholders))
 
-	# deploy VotingRevoker contract
-	print('Deploying VotingRevoker contract...')
+	# deploy KeyRevokerByVoting contract
+	print('Deploying KeyRevokerByVoting contract...')
 	votingContract = EthContractHelper.LoadContract(
 		w3=w3,
 		projConf=PROJECT_CONFIG_PATH,
-		contractName='VotingRevoker',
+		contractName='KeyRevokerByVoting',
 		release=None, # use locally built contract
 		address=None, # deploy new contract
 	)
@@ -208,12 +208,12 @@ def RunVotingRevokerTests(
 		confirmPrompt=False # don't prompt for confirmation
 	)
 	votingAddr = votingReceipt.contractAddress
-	gasCosts['deployVotingRevoker'] = votingReceipt.gasUsed
-	print('VotingRevoker contract deployed at {}'.format(votingAddr))
+	gasCosts['deployKeyRevokerByVoting'] = votingReceipt.gasUsed
+	print('KeyRevokerByVoting contract deployed at {}'.format(votingAddr))
 	votingContract = EthContractHelper.LoadContract(
 		w3=w3,
 		projConf=PROJECT_CONFIG_PATH,
-		contractName='VotingRevoker',
+		contractName='KeyRevokerByVoting',
 		release=None, # use locally built contract
 		address=votingAddr
 	)
@@ -280,7 +280,7 @@ def RunVotingRevokerTests(
 	gasCosts['revokeVoteAvg'] = sum(voteCosts) / len(voteCosts)
 
 
-def RunConflictMsgRevokerTests(
+def RunKeyRevokerByConflictMsgTests(
 	w3: Web3,
 	pubSubAddr: str,
 	gasCosts: Dict[str, int],
@@ -292,12 +292,12 @@ def RunConflictMsgRevokerTests(
 		keyJson=CHECKSUM_KEYS_PATH
 	)
 
-	# deploy ConflictingMessageRevoker contract
-	print('Deploying ConflictingMessageRevoker contract...')
+	# deploy KeyRevokerByConflictMsg contract
+	print('Deploying KeyRevokerByConflictMsg contract...')
 	revokerContract = EthContractHelper.LoadContract(
 		w3=w3,
 		projConf=PROJECT_CONFIG_PATH,
-		contractName='ConflictingMessageRevoker',
+		contractName='KeyRevokerByConflictMsg',
 		release=None, # use locally built contract
 		address=None, # deploy new contract
 	)
@@ -311,12 +311,12 @@ def RunConflictMsgRevokerTests(
 		confirmPrompt=False # don't prompt for confirmation
 	)
 	revokerAddr = revokerReceipt.contractAddress
-	gasCosts['deployConflictingMessageRevoker'] = revokerReceipt.gasUsed
-	print('ConflictingMessageRevoker contract deployed at {}'.format(revokerAddr))
+	gasCosts['deployKeyRevokerByConflictMsg'] = revokerReceipt.gasUsed
+	print('KeyRevokerByConflictMsg contract deployed at {}'.format(revokerAddr))
 	revokerContract = EthContractHelper.LoadContract(
 		w3=w3,
 		projConf=PROJECT_CONFIG_PATH,
-		contractName='ConflictingMessageRevoker',
+		contractName='KeyRevokerByConflictMsg',
 		release=None, # use locally built contract
 		address=revokerAddr
 	)
@@ -358,7 +358,7 @@ def RunConflictMsgRevokerTests(
 	print()
 
 
-def RunLeakedKeyRevokerTests(
+def RunKeyRevokerByLeakedKeyTests(
 	w3: Web3,
 	pubSubAddr: str,
 	gasCosts: Dict[str, int],
@@ -370,12 +370,12 @@ def RunLeakedKeyRevokerTests(
 		keyJson=CHECKSUM_KEYS_PATH
 	)
 
-	# deploy LeakedKeyRevoker contract
-	print('Deploying LeakedKeyRevoker contract...')
+	# deploy KeyRevokerByLeakedKey contract
+	print('Deploying KeyRevokerByLeakedKey contract...')
 	revokerContract = EthContractHelper.LoadContract(
 		w3=w3,
 		projConf=PROJECT_CONFIG_PATH,
-		contractName='LeakedKeyRevoker',
+		contractName='KeyRevokerByLeakedKey',
 		release=None, # use locally built contract
 		address=None, # deploy new contract
 	)
@@ -389,12 +389,12 @@ def RunLeakedKeyRevokerTests(
 		confirmPrompt=False # don't prompt for confirmation
 	)
 	revokerAddr = revokerReceipt.contractAddress
-	gasCosts['deployLeakedKeyRevoker'] = revokerReceipt.gasUsed
-	print('LeakedKeyRevoker contract deployed at {}'.format(revokerAddr))
+	gasCosts['deployKeyRevokerByLeakedKey'] = revokerReceipt.gasUsed
+	print('KeyRevokerByLeakedKey contract deployed at {}'.format(revokerAddr))
 	revokerContract = EthContractHelper.LoadContract(
 		w3=w3,
 		projConf=PROJECT_CONFIG_PATH,
-		contractName='LeakedKeyRevoker',
+		contractName='KeyRevokerByLeakedKey',
 		release=None, # use locally built contract
 		address=revokerAddr
 	)
@@ -478,16 +478,16 @@ def RunTests() -> None:
 
 	gasCost = {}
 
-	# Run VotingRevoker tests
-	RunVotingRevokerTests(w3, pubSubAddr, gasCost)
+	# Run KeyRevokerByVoting tests
+	RunKeyRevokerByVotingTests(w3, pubSubAddr, gasCost)
 
-	# Run ConflictingMessageRevoker tests
-	RunConflictMsgRevokerTests(w3, pubSubAddr, gasCost)
+	# Run KeyRevokerByConflictMsg tests
+	RunKeyRevokerByConflictMsgTests(w3, pubSubAddr, gasCost)
 
-	# Run LeakedKeyRevoker tests
-	RunLeakedKeyRevokerTests(w3, pubSubAddr, gasCost)
+	# Run KeyRevokerByLeakedKey tests
+	RunKeyRevokerByLeakedKeyTests(w3, pubSubAddr, gasCost)
 
-	with open(os.path.join(BUILD_DIR, 'keyRevokeGasCosts.json'), 'w') as f:
+	with open(os.path.join(BUILD_DIR, 'gas_cost_key_revoker.json'), 'w') as f:
 		json.dump(gasCost, f, indent='\t')
 
 

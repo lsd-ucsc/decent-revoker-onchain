@@ -10,7 +10,7 @@ import "remix_tests.sol";
 import "remix_accounts.sol";
 
 
-import {LeakedKeyRevoker} from "../../KeyRevoker/LeakedKeyRevoker.sol";
+import {KeyRevokerByLeakedKey} from "../../KeyRevoker/KeyRevokerByLeakedKey.sol";
 
 import {KeyRevokeSubscriber} from "../KeyRevokeSubscriber.sol";
 import {PredeployA_PubSub_Addr} from "./00_PredeployA_PubSub_Addr.sol";
@@ -33,7 +33,7 @@ contract LeakedKeyRevoke_testSuit {
     function beforeAll() public payable {
         m_pubSubSvcAddr = PredeployA_PubSub_Addr.ADDR;
         m_revokerAddr =
-            address(new LeakedKeyRevoker(
+            address(new KeyRevokerByLeakedKey(
                 m_pubSubSvcAddr
             ));
 
@@ -45,7 +45,7 @@ contract LeakedKeyRevoke_testSuit {
     }
 
     function invalidRevokeSignTest() public {
-        try LeakedKeyRevoker(m_revokerAddr).submitRevokeSign(
+        try KeyRevokerByLeakedKey(m_revokerAddr).submitRevokeSign(
             // revoke sign r
             0x46d349498c7b205950269c21c35913f4c7f8451d2e618070daa82df6af5309d2,
             // should be
@@ -77,7 +77,7 @@ contract LeakedKeyRevoke_testSuit {
             "should be reset"
         );
 
-        try LeakedKeyRevoker(m_revokerAddr).submitRevokeSign(
+        try KeyRevokerByLeakedKey(m_revokerAddr).submitRevokeSign(
             // revoke sign r
             0x46d349498c7b205950269c21c35913f4c7f8451d2e618070daa82df6af5309d2,
             // revoke sign s
@@ -93,7 +93,7 @@ contract LeakedKeyRevoke_testSuit {
         }
 
         Assert.ok(
-            LeakedKeyRevoker(m_revokerAddr).isRevoked(
+            KeyRevokerByLeakedKey(m_revokerAddr).isRevoked(
                 0xed02Eb0f195cdee260b0Ec6b3cEA3ad6a0d207D7
             ),
             "should be revoked"
