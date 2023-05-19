@@ -12,6 +12,8 @@ import "remix_accounts.sol";
 
 import {PubSubService} from "../../libs/DecentPubSub/PubSub/PubSubService.sol";
 
+import {PredeployD_PubSub_Addr} from "./00_PredeployD_PubSub_Addr.sol";
+
 
 // File name has to end with '_test.sol', this file can contain more than one testSuite contracts
 contract PredeployD_PubSub_testSuit {
@@ -28,7 +30,7 @@ contract PredeployD_PubSub_testSuit {
         m_addr = address(new PubSubService());
         Assert.equal(
             m_addr,
-            0x80922Db6752eCe1C2DeFA54Beb8FB984E649308B,
+            PredeployD_PubSub_Addr.ADDR,
             "The address of predeployed contract is changed;"
             " please update it accordingly in all test cases"
         );

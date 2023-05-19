@@ -14,6 +14,7 @@ import "remix_accounts.sol";
 import {RevokerByVoting} from "../../DecentRevoker/RevokerByVoting.sol";
 
 import {DecentRevokeSubscriber} from "../DecentRevokeSubscriber.sol";
+import {PredeployD_PubSub_Addr} from "./00_PredeployD_PubSub_Addr.sol";
 import {VotingContract} from "./01_VotingContract.sol";
 
 
@@ -37,7 +38,7 @@ contract RevokerByVoting_testSuite {
         stakeHolders[2] = address(new VotingContract());
         m_stakeHolders = stakeHolders;
 
-        m_pubSubSvcAddr = 0x80922Db6752eCe1C2DeFA54Beb8FB984E649308B;
+        m_pubSubSvcAddr = PredeployD_PubSub_Addr.ADDR;
         m_revokerAddr =
             address(new RevokerByVoting(m_pubSubSvcAddr, m_stakeHolders));
     }

@@ -14,6 +14,8 @@ import {RevokerByConflictMsg} from "../../DecentRevoker/RevokerByConflictMsg.sol
 
 import {DecentRevokeSubscriber} from "../DecentRevokeSubscriber.sol";
 import {TestInputs} from "../TestInputs.sol";
+import {PredeployC_DecentSvr_Addr} from "./00_PredeployC_DecentSvr_Addr.sol";
+import {PredeployD_PubSub_Addr} from "./00_PredeployD_PubSub_Addr.sol";
 
 
 // File name has to end with '_test.sol', this file can contain more than one testSuite contracts
@@ -32,8 +34,8 @@ contract RevokerByConflictMsg_testSuite {
     /// More special functions are: 'beforeEach', 'beforeAll', 'afterEach' & 'afterAll'
     /// #value: 1000000000000000000
     function beforeAll() public payable {
-        m_decentCertMgrAddr = 0xD9eC9E840Bb5Df076DBbb488d01485058f421e58;
-        m_pubSubSvcAddr = 0x80922Db6752eCe1C2DeFA54Beb8FB984E649308B;
+        m_decentCertMgrAddr = PredeployC_DecentSvr_Addr.ADDR1;
+        m_pubSubSvcAddr = PredeployD_PubSub_Addr.ADDR;
         m_revokerAddr =
             address(new RevokerByConflictMsg(
                 m_pubSubSvcAddr,
