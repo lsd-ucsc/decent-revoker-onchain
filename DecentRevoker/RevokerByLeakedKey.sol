@@ -14,9 +14,12 @@ import {
 } from "../libs/DecentPubSub/PubSub/Interface_PubSubService.sol";
 
 
-contract ConflictingMessageRevoker {
-
+contract RevokerByLeakedKey {
     using DecentAppCert for DecentAppCert.DecentApp;
+
+    //===== constants =====
+
+    bytes32 constant REVOKING_HASH = "REVOKE THIS PRIVATE KEY         ";
 
     //===== member variables =====
 
@@ -35,22 +38,14 @@ contract ConflictingMessageRevoker {
 
     //===== functions =====
 
-    function reportConflicts(
-        bytes32 eventId,
-        bytes32 content1,
-        bytes32 message1SigR,
-        bytes32 message1SigS,
-        bytes32 content2,
-        bytes32 message2SigR,
-        bytes32 message2SigS,
+    function submitRevokeSign(
+        bytes32 sigR,
+        bytes32 sigS,
         bytes memory svrCertDer,
         bytes memory appCertDer
     )
         external
     {
-        // must be different content
-        require(content1 != content2, "contents must be different");
-
         // verify the Decent certificate chain
         DecentAppCert.DecentApp memory appCert;
         DecentCertChain.verifyCertChain(
@@ -66,28 +61,15 @@ contract ConflictingMessageRevoker {
             return;
         }
 
-        bytes memory message1 = bytes.concat(eventId, content1);
-        bytes memory message2 = bytes.concat(eventId, content2);
-
-        // require that they are signed by the same App
+        // require that the key was used to sign the message above
         require(
-            LibSecp256k1Sha256.verifySignMsg(
+            LibSecp256k1Sha256.verifySignHash(
                 appCert.appKeyAddr,
-                message1,
-                message1SigR,
-                message1SigS
+                REVOKING_HASH,
+                sigR,
+                sigS
             ),
-            "message1 signature invalid"
-        );
-
-        require(
-            LibSecp256k1Sha256.verifySignMsg(
-                appCert.appKeyAddr,
-                message2,
-                message2SigR,
-                message2SigS
-            ),
-            "message2 signature invalid"
+            "revoke signature invalid"
         );
 
         m_revoked[appCert.appEnclaveHash] = true;
@@ -95,7 +77,7 @@ contract ConflictingMessageRevoker {
         Interface_EventManager(m_eventMgrAddr).notifySubscribers(
             abi.encodePacked(appCert.appEnclaveHash)
         );
-    } // end reportConflicts()
+    } // end submitRevokeSign()
 
     function isRevoked(bytes32 enclaveId) external view returns (bool) {
         return m_revoked[enclaveId];

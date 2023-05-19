@@ -10,7 +10,7 @@ import {
 } from "../libs/DecentPubSub/PubSub/Interface_PubSubService.sol";
 
 
-contract VotingRevoker {
+contract RevokerByVoting {
 
     //===== structs =====
 
@@ -25,10 +25,10 @@ contract VotingRevoker {
     address m_eventMgrAddr;
 
     mapping(address => bool) m_stakeHolders;
-    mapping(address => bool) m_revoked;
+    mapping(bytes32 => bool) m_revoked;
 
-    // map key addr to vote struct {numvotes, voters(map)}
-    mapping(address => VoteStruct) m_votes;
+    // map enclaves to vote struct {numvotes, voters(map)}
+    mapping(bytes32 => VoteStruct) m_votes;
 
     //===== Constructor =====
 
@@ -70,11 +70,11 @@ contract VotingRevoker {
 
     //===== functions =====
 
-    function revokeVote(address proposedKeyAddr) external {
+    function revokeVote(bytes32 enclaveId) external {
         // must be a valid stakeholder to vote
         require(m_stakeHolders[msg.sender], "invalid stakeholder");
 
-        VoteStruct storage vote = m_votes[proposedKeyAddr];
+        VoteStruct storage vote = m_votes[enclaveId];
 
         // stakeholder can only vote once
         require (!vote.stakeholder[msg.sender], "stakeholder already voted");
@@ -84,17 +84,17 @@ contract VotingRevoker {
         vote.numVotes++;
 
         // if it's not revoked and we have enough votes, revoke it
-        if (!m_revoked[proposedKeyAddr] && vote.numVotes >= m_voteThreshold) {
-            m_revoked[proposedKeyAddr] = true;
+        if (!m_revoked[enclaveId] && vote.numVotes >= m_voteThreshold) {
+            m_revoked[enclaveId] = true;
 
             Interface_EventManager(m_eventMgrAddr).notifySubscribers(
-                abi.encodePacked(proposedKeyAddr)
+                abi.encodePacked(enclaveId)
             );
         }
     } // end revokeVote()
 
-    function isRevoked(address keyAddr) external view returns (bool) {
-        return m_revoked[keyAddr];
+    function isRevoked(bytes32 enclaveId) external view returns (bool) {
+        return m_revoked[enclaveId];
     } // end isRevoked()
 
 }

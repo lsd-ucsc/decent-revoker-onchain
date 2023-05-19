@@ -11,15 +11,15 @@ import "remix_accounts.sol";
 
 
 import {
-    ConflictingMessageRevoker
-} from "../../KeyRevoker/ConflictingMessageRevoker.sol";
+    KeyRevokerByConflictMsg
+} from "../../KeyRevoker/KeyRevokerByConflictMsg.sol";
 
 import {KeyRevokeSubscriber} from "../KeyRevokeSubscriber.sol";
 import {PredeployA_PubSub_Addr} from "./00_PredeployA_PubSub_Addr.sol";
 
 
 // File name has to end with '_test.sol', this file can contain more than one testSuite contracts
-contract ConflictMsgRevoke_testSuit {
+contract KeyRevokerByConflictMsg_testSuite {
 
     //===== member variables =====
 
@@ -35,7 +35,7 @@ contract ConflictMsgRevoke_testSuit {
     function beforeAll() public payable {
         m_pubSubSvcAddr = PredeployA_PubSub_Addr.ADDR;
         m_revokerAddr =
-            address(new ConflictingMessageRevoker(
+            address(new KeyRevokerByConflictMsg(
                 m_pubSubSvcAddr
             ));
 
@@ -47,7 +47,7 @@ contract ConflictMsgRevoke_testSuit {
     }
 
     function sameContentTest() public {
-        try ConflictingMessageRevoker(m_revokerAddr).reportConflicts(
+        try KeyRevokerByConflictMsg(m_revokerAddr).reportConflicts(
             // event ID hash
             0x564049e273a08ddcf23d175320562306a1092532e78289f1ed443eb25d803956,
             // msg 1 content hash
@@ -78,7 +78,7 @@ contract ConflictMsgRevoke_testSuit {
     }
 
     function msg1InvalidSign() public {
-        try ConflictingMessageRevoker(m_revokerAddr).reportConflicts(
+        try KeyRevokerByConflictMsg(m_revokerAddr).reportConflicts(
             // event ID hash
             0x564049e273a08ddcf23d175320562306a1092532e78289f1ed443eb25d803956,
             // msg 1 content hash
@@ -109,7 +109,7 @@ contract ConflictMsgRevoke_testSuit {
     }
 
     function msg2InvalidSign() public {
-        try ConflictingMessageRevoker(m_revokerAddr).reportConflicts(
+        try KeyRevokerByConflictMsg(m_revokerAddr).reportConflicts(
             // event ID hash
             0x564049e273a08ddcf23d175320562306a1092532e78289f1ed443eb25d803956,
             // msg 1 content hash
@@ -147,7 +147,7 @@ contract ConflictMsgRevoke_testSuit {
             "should be reset"
         );
 
-        try ConflictingMessageRevoker(m_revokerAddr).reportConflicts(
+        try KeyRevokerByConflictMsg(m_revokerAddr).reportConflicts(
             // event ID hash
             0x564049e273a08ddcf23d175320562306a1092532e78289f1ed443eb25d803956,
             // msg 1 content hash
@@ -173,7 +173,7 @@ contract ConflictMsgRevoke_testSuit {
         }
 
         Assert.ok(
-            ConflictingMessageRevoker(m_revokerAddr).isRevoked(
+            KeyRevokerByConflictMsg(m_revokerAddr).isRevoked(
                 0x2699AccBCd33C4519b7d4fcB8fB291D4dDbB9201
             ),
             "should be revoked"
@@ -193,7 +193,7 @@ contract ConflictMsgRevoke_testSuit {
             "should be reset"
         );
 
-        try ConflictingMessageRevoker(m_revokerAddr).reportConflicts(
+        try KeyRevokerByConflictMsg(m_revokerAddr).reportConflicts(
             // event ID hash
             0xd51f87044f4df302378bfcb8d7ba1fb824c5ce325b3999ed3716d07724c2ce6b,
             // msg 1 content hash
@@ -219,7 +219,7 @@ contract ConflictMsgRevoke_testSuit {
         }
 
         Assert.ok(
-            ConflictingMessageRevoker(m_revokerAddr).isRevoked(
+            KeyRevokerByConflictMsg(m_revokerAddr).isRevoked(
                 0x79287ed0721e1DbFb9AB94856e45d3a8F68a728B
             ),
             "should be revoked"

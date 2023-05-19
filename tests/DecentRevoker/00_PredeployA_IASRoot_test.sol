@@ -13,6 +13,7 @@ import "remix_accounts.sol";
 import {IASRootCertMgr} from "../../libs/DecentRA/contracts/IASRootCertMgr.sol";
 
 import {TestInputs} from "../TestInputs.sol";
+import {PredeployA_IASRoot_Addr} from "./00_PredeployA_IASRoot_Addr.sol";
 
 
 // File name has to end with '_test.sol', this file can contain more than one testSuite contracts
@@ -30,7 +31,7 @@ contract PredeployA_IASRoot_testSuit {
         m_addr = address(new IASRootCertMgr(TestInputs.IAS_ROOT_CERT_DER));
         Assert.equal(
             m_addr,
-            0x93Ff8fe9BF40051E8763C864B15A0E87f2f96468,
+            PredeployA_IASRoot_Addr.ADDR,
             "The address of predeployed contract is changed;"
             " please update it accordingly in all test cases"
         );

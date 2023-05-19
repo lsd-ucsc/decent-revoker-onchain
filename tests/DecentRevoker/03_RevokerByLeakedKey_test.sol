@@ -10,17 +10,20 @@ import "remix_tests.sol";
 import "remix_accounts.sol";
 
 
-import {LeakedKeyRevoker} from "../../KeyRevoker/LeakedKeyRevoker.sol";
+import {RevokerByLeakedKey} from "../../DecentRevoker/RevokerByLeakedKey.sol";
 
-import {KeyRevokeSubscriber} from "../KeyRevokeSubscriber.sol";
-import {PredeployA_PubSub_Addr} from "./00_PredeployA_PubSub_Addr.sol";
+import {DecentRevokeSubscriber} from "../DecentRevokeSubscriber.sol";
+import {TestInputs} from "../TestInputs.sol";
+import {PredeployC_DecentSvr_Addr} from "./00_PredeployC_DecentSvr_Addr.sol";
+import {PredeployD_PubSub_Addr} from "./00_PredeployD_PubSub_Addr.sol";
 
 
 // File name has to end with '_test.sol', this file can contain more than one testSuite contracts
-contract LeakedKeyRevoke_testSuit {
+contract RevokerByLeakedKey_testSuite {
 
     //===== member variables =====
 
+    address m_decentCertMgrAddr;
     address m_pubSubSvcAddr;
     address m_revokerAddr;
     address m_subsAddr;
@@ -31,13 +34,15 @@ contract LeakedKeyRevoke_testSuit {
     /// More special functions are: 'beforeEach', 'beforeAll', 'afterEach' & 'afterAll'
     /// #value: 1000000000000000000
     function beforeAll() public payable {
-        m_pubSubSvcAddr = PredeployA_PubSub_Addr.ADDR;
+        m_decentCertMgrAddr = PredeployC_DecentSvr_Addr.ADDR1;
+        m_pubSubSvcAddr = PredeployD_PubSub_Addr.ADDR;
         m_revokerAddr =
-            address(new LeakedKeyRevoker(
-                m_pubSubSvcAddr
+            address(new RevokerByLeakedKey(
+                m_pubSubSvcAddr,
+                m_decentCertMgrAddr
             ));
 
-        KeyRevokeSubscriber subs = new KeyRevokeSubscriber();
+        DecentRevokeSubscriber subs = new DecentRevokeSubscriber();
         subs.subscribe{
             value: msg.value
         }(m_pubSubSvcAddr, m_revokerAddr);
@@ -45,17 +50,11 @@ contract LeakedKeyRevoke_testSuit {
     }
 
     function invalidRevokeSignTest() public {
-        try LeakedKeyRevoker(m_revokerAddr).submitRevokeSign(
-            // revoke sign r
-            0x46d349498c7b205950269c21c35913f4c7f8451d2e618070daa82df6af5309d2,
-            // should be
-            // 0x9318c05c529b9b6394dc8ad3e85cb876e72df2c017cae1ca6f6503e39a7c9872,
-            // revoke sign s
-            0x23bdca7f835975b62f0e3111799faf07927a78d8a16427b95c1296cd51f93ffb,
-            // should be
-            // 0xc4532c17e70c7b13e5c3e54e436613f3496f7e2b35afe70cf09e4e3c6234a351,
-            // key address
-            0x5eF7E1948b447E0737F9Bfce4c8741FfDAEFC43E
+        try RevokerByLeakedKey(m_revokerAddr).submitRevokeSign(
+            TestInputs.DECENT_APP_02_REVOKE_SIGN_R,
+            TestInputs.DECENT_APP_02_REVOKE_SIGN_S,
+            TestInputs.DECENT_SVR_CERT_DER,
+            TestInputs.DECENT_APP_01_CERT_DER
         ) {
             Assert.ok(false, "should not be able to revoke");
         } catch Error(string memory reason) {
@@ -70,20 +69,18 @@ contract LeakedKeyRevoke_testSuit {
     }
 
     function okRevokeSignTest() public {
-        KeyRevokeSubscriber(m_subsAddr).reset();
+        DecentRevokeSubscriber(m_subsAddr).reset();
         Assert.equal(
-            KeyRevokeSubscriber(m_subsAddr).m_keyAddr(),
-            address(0),
+            DecentRevokeSubscriber(m_subsAddr).m_enclaveId(),
+            bytes32(0),
             "should be reset"
         );
 
-        try LeakedKeyRevoker(m_revokerAddr).submitRevokeSign(
-            // revoke sign r
-            0x46d349498c7b205950269c21c35913f4c7f8451d2e618070daa82df6af5309d2,
-            // revoke sign s
-            0x23bdca7f835975b62f0e3111799faf07927a78d8a16427b95c1296cd51f93ffb,
-            // key address
-            0xed02Eb0f195cdee260b0Ec6b3cEA3ad6a0d207D7
+        try RevokerByLeakedKey(m_revokerAddr).submitRevokeSign(
+            TestInputs.DECENT_APP_01_REVOKE_SIGN_R,
+            TestInputs.DECENT_APP_01_REVOKE_SIGN_S,
+            TestInputs.DECENT_SVR_CERT_DER,
+            TestInputs.DECENT_APP_01_CERT_DER
         ) {
             Assert.ok(true, "should be able to revoke");
         } catch Error(string memory reason) {
@@ -93,14 +90,14 @@ contract LeakedKeyRevoke_testSuit {
         }
 
         Assert.ok(
-            LeakedKeyRevoker(m_revokerAddr).isRevoked(
-                0xed02Eb0f195cdee260b0Ec6b3cEA3ad6a0d207D7
+            RevokerByLeakedKey(m_revokerAddr).isRevoked(
+                TestInputs.DECENT_APP_01_ENCLAVE_HASH
             ),
             "should be revoked"
         );
         Assert.equal(
-            KeyRevokeSubscriber(m_subsAddr).m_keyAddr(),
-            0xed02Eb0f195cdee260b0Ec6b3cEA3ad6a0d207D7,
+            DecentRevokeSubscriber(m_subsAddr).m_enclaveId(),
+            TestInputs.DECENT_APP_01_ENCLAVE_HASH,
             "subscriber should be notified"
         );
     }

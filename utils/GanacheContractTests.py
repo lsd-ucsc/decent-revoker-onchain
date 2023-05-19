@@ -145,7 +145,7 @@ def LoadProblemCredential(sIdx: int, aIdx: int, mIdx: int) -> dict:
 	return msg
 
 
-def RunVotingRevokerTests(
+def RunRevokerByVotingTests(
 	w3: Web3,
 	pubSubAddr: str,
 ) -> None:
@@ -163,12 +163,12 @@ def RunVotingRevokerTests(
 	stakeholders = stakeholders[:3]
 	print('Stakeholders are: {}'.format(stakeholders))
 
-	# deploy VotingRevoker contract
-	print('Deploying VotingRevoker contract...')
+	# deploy RevokerByVoting contract
+	print('Deploying RevokerByVoting contract...')
 	votingContract = EthContractHelper.LoadContract(
 		w3=w3,
 		projConf=PROJECT_CONFIG_PATH,
-		contractName='VotingRevoker',
+		contractName='RevokerByVoting',
 		release=None, # use locally built contract
 		address=None, # deploy new contract
 	)
@@ -182,11 +182,11 @@ def RunVotingRevokerTests(
 		confirmPrompt=False # don't prompt for confirmation
 	)
 	votingAddr = votingReceipt.contractAddress
-	print('VotingRevoker contract deployed at {}'.format(votingAddr))
+	print('RevokerByVoting contract deployed at {}'.format(votingAddr))
 	votingContract = EthContractHelper.LoadContract(
 		w3=w3,
 		projConf=PROJECT_CONFIG_PATH,
-		contractName='VotingRevoker',
+		contractName='RevokerByVoting',
 		release=None, # use locally built contract
 		address=votingAddr
 	)
@@ -246,7 +246,7 @@ def RunVotingRevokerTests(
 	print()
 
 
-def RunConflictMsgRevokerTests(
+def RunRevokerByConflictMsgTests(
 	w3: Web3,
 	pubSubAddr: str,
 	decentSvrCertMgrAddr: str,
@@ -258,12 +258,12 @@ def RunConflictMsgRevokerTests(
 		keyJson=CHECKSUM_KEYS_PATH
 	)
 
-	# deploy ConflictingMessageRevoker contract
-	print('Deploying ConflictingMessageRevoker contract...')
+	# deploy RevokerByConflictMsg contract
+	print('Deploying RevokerByConflictMsg contract...')
 	revokerContract = EthContractHelper.LoadContract(
 		w3=w3,
 		projConf=PROJECT_CONFIG_PATH,
-		contractName='ConflictingMessageRevoker',
+		contractName='RevokerByConflictMsg',
 		release=None, # use locally built contract
 		address=None, # deploy new contract
 	)
@@ -277,11 +277,11 @@ def RunConflictMsgRevokerTests(
 		confirmPrompt=False # don't prompt for confirmation
 	)
 	revokerAddr = revokerReceipt.contractAddress
-	print('ConflictingMessageRevoker contract deployed at {}'.format(revokerAddr))
+	print('RevokerByConflictMsg contract deployed at {}'.format(revokerAddr))
 	revokerContract = EthContractHelper.LoadContract(
 		w3=w3,
 		projConf=PROJECT_CONFIG_PATH,
-		contractName='ConflictingMessageRevoker',
+		contractName='RevokerByConflictMsg',
 		release=None, # use locally built contract
 		address=revokerAddr
 	)
@@ -323,7 +323,7 @@ def RunConflictMsgRevokerTests(
 	print()
 
 
-def RunLeakedKeyRevokerTests(
+def RunRevokerByLeakedKeyTests(
 	w3: Web3,
 	pubSubAddr: str,
 	decentSvrCertMgrAddr: str,
@@ -340,12 +340,12 @@ def RunLeakedKeyRevokerTests(
 	# generate revoke signature
 	rHex, sHex = GenerateRevokeSign(credentials)
 
-	# deploy LeakedKeyRevoker contract
-	print('Deploying LeakedKeyRevoker contract...')
+	# deploy RevokerByLeakedKey contract
+	print('Deploying RevokerByLeakedKey contract...')
 	revokerContract = EthContractHelper.LoadContract(
 		w3=w3,
 		projConf=PROJECT_CONFIG_PATH,
-		contractName='LeakedKeyRevoker',
+		contractName='RevokerByLeakedKey',
 		release=None, # use locally built contract
 		address=None, # deploy new contract
 	)
@@ -359,11 +359,11 @@ def RunLeakedKeyRevokerTests(
 		confirmPrompt=False # don't prompt for confirmation
 	)
 	revokerAddr = revokerReceipt.contractAddress
-	print('LeakedKeyRevoker contract deployed at {}'.format(revokerAddr))
+	print('RevokerByLeakedKey contract deployed at {}'.format(revokerAddr))
 	revokerContract = EthContractHelper.LoadContract(
 		w3=w3,
 		projConf=PROJECT_CONFIG_PATH,
-		contractName='LeakedKeyRevoker',
+		contractName='RevokerByLeakedKey',
 		release=None, # use locally built contract
 		address=revokerAddr
 	)
@@ -509,14 +509,14 @@ def RunTests() -> None:
 	print('DecentServerCertMgr contract deployed at {}'.format(decentSvrAddr))
 	print()
 
-	# Run VotingRevoker tests
-	RunVotingRevokerTests(w3, pubSubAddr)
+	# Run RevokerByVoting tests
+	RunRevokerByVotingTests(w3, pubSubAddr)
 
-	# Run ConflictingMessageRevoker tests
-	RunConflictMsgRevokerTests(w3, pubSubAddr, decentSvrAddr)
+	# Run RevokerByConflictMsg tests
+	RunRevokerByConflictMsgTests(w3, pubSubAddr, decentSvrAddr)
 
-	# Run LeakedKeyRevoker tests
-	RunLeakedKeyRevokerTests(w3, pubSubAddr, decentSvrAddr)
+	# Run RevokerByLeakedKey tests
+	RunRevokerByLeakedKeyTests(w3, pubSubAddr, decentSvrAddr)
 
 
 def StopGanache(ganacheProc: subprocess.Popen) -> None:

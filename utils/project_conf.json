@@ -4,9 +4,12 @@
 		"IASRootCertMgr"            : "../libs/DecentRA/build/contracts",
 		"IASReportCertMgr"          : "../libs/DecentRA/build/contracts",
 		"DecentServerCertMgr"       : "../libs/DecentRA/build/contracts",
-		"VotingRevoker"             : "DecentRevoker",
-		"ConflictingMessageRevoker" : "DecentRevoker",
-		"LeakedKeyRevoker"          : "DecentRevoker"
+		"RevokerByVoting"           : "DecentRevoker",
+		"RevokerByConflictMsg"      : "DecentRevoker",
+		"RevokerByLeakedKey"        : "DecentRevoker",
+		"KeyRevokerByVoting"        : "KeyRevoker",
+		"KeyRevokerByConflictMsg"   : "KeyRevoker",
+		"KeyRevokerByLeakedKey"     : "KeyRevoker"
 	},
 	"releaseUrl": "https://github.com/lsd-ucsc/decent-ra-onchain/releases/download/{version}/{contract}",
 	"buildDir"  : "build"

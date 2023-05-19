@@ -2,7 +2,7 @@
 pragma solidity >=0.4.17 <0.9.0;
 
 
-import {VotingRevoker} from "../../DecentRevoker/VotingRevoker.sol";
+import {RevokerByVoting} from "../../DecentRevoker/RevokerByVoting.sol";
 
 
 contract VotingContract {
@@ -15,6 +15,6 @@ contract VotingContract {
     )
         public
     {
-        VotingRevoker(vRevokerAddr).revokeVote(enclaveId);
+        RevokerByVoting(vRevokerAddr).revokeVote(enclaveId);
     }
 }

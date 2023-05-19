@@ -1,8 +1,8 @@
 MODULE_NAME := KeyRevoker
 CONTRACTS   := \
-	VotingRevoker \
-	ConflictingMessageRevoker \
-	LeakedKeyRevoker
+	KeyRevokerByVoting \
+	KeyRevokerByConflictMsg \
+	KeyRevokerByLeakedKey
 
 MKFILE_PATH  := $(abspath $(lastword $(MAKEFILE_LIST)))
 CURRENT_DIR  := $(dir $(MKFILE_PATH))
