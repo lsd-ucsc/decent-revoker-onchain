@@ -19,7 +19,7 @@ import {PredeployA_PubSub_Addr} from "./00_PredeployA_PubSub_Addr.sol";
 
 
 // File name has to end with '_test.sol', this file can contain more than one testSuite contracts
-contract ConflictMsgRevoke_testSuit {
+contract KeyRevokerByConflictMsg_testSuite {
 
     //===== member variables =====
 

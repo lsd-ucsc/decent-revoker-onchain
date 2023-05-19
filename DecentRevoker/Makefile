@@ -1,8 +1,8 @@
 MODULE_NAME := DecentRevoker
 CONTRACTS   := \
-	VotingRevoker \
-	ConflictingMessageRevoker \
-	LeakedKeyRevoker
+	RevokerByVoting \
+	RevokerByConflictMsg \
+	RevokerByLeakedKey
 
 MKFILE_PATH  := $(abspath $(lastword $(MAKEFILE_LIST)))
 CURRENT_DIR  := $(dir $(MKFILE_PATH))

@@ -18,7 +18,8 @@ import {PredeployA_PubSub_Addr} from "./00_PredeployA_PubSub_Addr.sol";
 import {VotingContract} from "./01_VotingContract.sol";
 
 
-contract KeyRevokerByVoting_testSuit {
+// File name has to end with '_test.sol', this file can contain more than one testSuite contracts
+contract KeyRevokerByVoting_testSuite {
 
     //===== member variables =====
 

@@ -10,16 +10,14 @@ import "remix_tests.sol";
 import "remix_accounts.sol";
 
 
-import {
-    ConflictingMessageRevoker
-} from "../../DecentRevoker/ConflictingMessageRevoker.sol";
+import {RevokerByConflictMsg} from "../../DecentRevoker/RevokerByConflictMsg.sol";
 
 import {DecentRevokeSubscriber} from "../DecentRevokeSubscriber.sol";
 import {TestInputs} from "../TestInputs.sol";
 
 
 // File name has to end with '_test.sol', this file can contain more than one testSuite contracts
-contract ConflictMsgRevoke_testSuit {
+contract RevokerByConflictMsg_testSuite {
 
     //===== member variables =====
 
@@ -37,7 +35,7 @@ contract ConflictMsgRevoke_testSuit {
         m_decentCertMgrAddr = 0xD9eC9E840Bb5Df076DBbb488d01485058f421e58;
         m_pubSubSvcAddr = 0x80922Db6752eCe1C2DeFA54Beb8FB984E649308B;
         m_revokerAddr =
-            address(new ConflictingMessageRevoker(
+            address(new RevokerByConflictMsg(
                 m_pubSubSvcAddr,
                 m_decentCertMgrAddr
             ));
@@ -50,7 +48,7 @@ contract ConflictMsgRevoke_testSuit {
     }
 
     function sameContentTest() public {
-        try ConflictingMessageRevoker(m_revokerAddr).reportConflicts(
+        try RevokerByConflictMsg(m_revokerAddr).reportConflicts(
             TestInputs.DECENT_APP_01_EVENT_01_ID_HASH,
             TestInputs.DECENT_APP_01_EVENT_01_MSG1_HASH,
             TestInputs.DECENT_APP_01_EVENT_01_MSG1_SIGN_R,
@@ -74,7 +72,7 @@ contract ConflictMsgRevoke_testSuit {
     }
 
     function msg1InvalidSign() public {
-        try ConflictingMessageRevoker(m_revokerAddr).reportConflicts(
+        try RevokerByConflictMsg(m_revokerAddr).reportConflicts(
             TestInputs.DECENT_APP_01_EVENT_01_ID_HASH,
             TestInputs.DECENT_APP_01_EVENT_01_MSG1_HASH,
             TestInputs.DECENT_APP_01_EVENT_02_MSG1_SIGN_R,
@@ -98,7 +96,7 @@ contract ConflictMsgRevoke_testSuit {
     }
 
     function msg2InvalidSign() public {
-        try ConflictingMessageRevoker(m_revokerAddr).reportConflicts(
+        try RevokerByConflictMsg(m_revokerAddr).reportConflicts(
             TestInputs.DECENT_APP_01_EVENT_01_ID_HASH,
             TestInputs.DECENT_APP_01_EVENT_01_MSG1_HASH,
             TestInputs.DECENT_APP_01_EVENT_01_MSG1_SIGN_R,
@@ -129,7 +127,7 @@ contract ConflictMsgRevoke_testSuit {
             "should be reset"
         );
 
-        try ConflictingMessageRevoker(m_revokerAddr).reportConflicts(
+        try RevokerByConflictMsg(m_revokerAddr).reportConflicts(
             TestInputs.DECENT_APP_01_EVENT_01_ID_HASH,
             TestInputs.DECENT_APP_01_EVENT_01_MSG1_HASH,
             TestInputs.DECENT_APP_01_EVENT_01_MSG1_SIGN_R,
@@ -148,7 +146,7 @@ contract ConflictMsgRevoke_testSuit {
         }
 
         Assert.ok(
-            ConflictingMessageRevoker(m_revokerAddr).isRevoked(
+            RevokerByConflictMsg(m_revokerAddr).isRevoked(
                 TestInputs.DECENT_APP_01_ENCLAVE_HASH
             ),
             "should be revoked"
@@ -168,7 +166,7 @@ contract ConflictMsgRevoke_testSuit {
             "should be reset"
         );
 
-        try ConflictingMessageRevoker(m_revokerAddr).reportConflicts(
+        try RevokerByConflictMsg(m_revokerAddr).reportConflicts(
             TestInputs.DECENT_APP_02_EVENT_01_ID_HASH,
             TestInputs.DECENT_APP_02_EVENT_01_MSG1_HASH,
             TestInputs.DECENT_APP_02_EVENT_01_MSG1_SIGN_R,
@@ -187,7 +185,7 @@ contract ConflictMsgRevoke_testSuit {
         }
 
         Assert.ok(
-            ConflictingMessageRevoker(m_revokerAddr).isRevoked(
+            RevokerByConflictMsg(m_revokerAddr).isRevoked(
                 TestInputs.DECENT_APP_02_ENCLAVE_HASH
             ),
             "should be revoked"

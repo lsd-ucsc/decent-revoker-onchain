@@ -10,14 +10,14 @@ import "remix_tests.sol";
 import "remix_accounts.sol";
 
 
-import {LeakedKeyRevoker} from "../../DecentRevoker/LeakedKeyRevoker.sol";
+import {RevokerByLeakedKey} from "../../DecentRevoker/RevokerByLeakedKey.sol";
 
 import {DecentRevokeSubscriber} from "../DecentRevokeSubscriber.sol";
 import {TestInputs} from "../TestInputs.sol";
 
 
 // File name has to end with '_test.sol', this file can contain more than one testSuite contracts
-contract LeakedKeyRevoke_testSuit {
+contract RevokerByLeakedKey_testSuite {
 
     //===== member variables =====
 
@@ -35,7 +35,7 @@ contract LeakedKeyRevoke_testSuit {
         m_decentCertMgrAddr = 0xD9eC9E840Bb5Df076DBbb488d01485058f421e58;
         m_pubSubSvcAddr = 0x80922Db6752eCe1C2DeFA54Beb8FB984E649308B;
         m_revokerAddr =
-            address(new LeakedKeyRevoker(
+            address(new RevokerByLeakedKey(
                 m_pubSubSvcAddr,
                 m_decentCertMgrAddr
             ));
@@ -48,7 +48,7 @@ contract LeakedKeyRevoke_testSuit {
     }
 
     function invalidRevokeSignTest() public {
-        try LeakedKeyRevoker(m_revokerAddr).submitRevokeSign(
+        try RevokerByLeakedKey(m_revokerAddr).submitRevokeSign(
             TestInputs.DECENT_APP_02_REVOKE_SIGN_R,
             TestInputs.DECENT_APP_02_REVOKE_SIGN_S,
             TestInputs.DECENT_SVR_CERT_DER,
@@ -74,7 +74,7 @@ contract LeakedKeyRevoke_testSuit {
             "should be reset"
         );
 
-        try LeakedKeyRevoker(m_revokerAddr).submitRevokeSign(
+        try RevokerByLeakedKey(m_revokerAddr).submitRevokeSign(
             TestInputs.DECENT_APP_01_REVOKE_SIGN_R,
             TestInputs.DECENT_APP_01_REVOKE_SIGN_S,
             TestInputs.DECENT_SVR_CERT_DER,
@@ -88,7 +88,7 @@ contract LeakedKeyRevoke_testSuit {
         }
 
         Assert.ok(
-            LeakedKeyRevoker(m_revokerAddr).isRevoked(
+            RevokerByLeakedKey(m_revokerAddr).isRevoked(
                 TestInputs.DECENT_APP_01_ENCLAVE_HASH
             ),
             "should be revoked"
