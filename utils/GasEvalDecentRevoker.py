@@ -20,7 +20,7 @@ import time
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec, utils
-from typing import Tuple
+from typing import Dict, Tuple
 from web3 import Web3
 
 
@@ -145,9 +145,74 @@ def LoadProblemCredential(sIdx: int, aIdx: int, mIdx: int) -> dict:
 	return msg
 
 
+def DeployIasReportCertMgr(w3: Web3, iasRootCertMgrAddr: str) -> str:
+	privKey = EthContractHelper.SetupSendingAccount(
+		w3=w3,
+		account=0, # use account 0
+		keyJson=CHECKSUM_KEYS_PATH
+	)
+
+	# deploy IASReportCertMgr contract
+	print('Deploying IASReportCertMgr contract...')
+	iasReportContract = EthContractHelper.LoadContract(
+		w3=w3,
+		projConf=PROJECT_CONFIG_PATH,
+		contractName='IASReportCertMgr',
+		release=None, # use locally built contract
+		address=None, # deploy new contract
+	)
+	iasReportReceipt = EthContractHelper.DeployContract(
+		w3=w3,
+		contract=iasReportContract,
+		arguments=[ iasRootCertMgrAddr ],
+		privKey=privKey,
+		gas=None, # let web3 estimate
+		value=0,
+		confirmPrompt=False # don't prompt for confirmation
+	)
+	iasReportCertMgrAddr = iasReportReceipt.contractAddress
+	print('IASReportCertMgr contract deployed at {}'.format(iasReportCertMgrAddr))
+	print()
+
+	return iasReportCertMgrAddr
+
+
+def DeployDecentSvrCertMgr(w3: Web3, iasReportCertMgrAddr: str) -> str:
+	privKey = EthContractHelper.SetupSendingAccount(
+		w3=w3,
+		account=0, # use account 0
+		keyJson=CHECKSUM_KEYS_PATH
+	)
+
+	# deploy DecentServerCertMgr contract
+	print('Deploying DecentServerCertMgr contract...')
+	decentSvrContract = EthContractHelper.LoadContract(
+		w3=w3,
+		projConf=PROJECT_CONFIG_PATH,
+		contractName='DecentServerCertMgr',
+		release=None, # use locally built contract
+		address=None, # deploy new contract
+	)
+	decentSvrReceipt = EthContractHelper.DeployContract(
+		w3=w3,
+		contract=decentSvrContract,
+		arguments=[ iasReportCertMgrAddr ],
+		privKey=privKey,
+		gas=None, # let web3 estimate
+		value=0,
+		confirmPrompt=False # don't prompt for confirmation
+	)
+	decentSvrCertMgrAddr = decentSvrReceipt.contractAddress
+	print('DecentServerCertMgr contract deployed at {}'.format(decentSvrCertMgrAddr))
+	print()
+
+	return decentSvrCertMgrAddr
+
+
 def RunRevokerByVotingTests(
 	w3: Web3,
 	pubSubAddr: str,
+	gasCosts: Dict[str, int],
 ) -> None:
 	# setup sending account
 	privKey = EthContractHelper.SetupSendingAccount(
@@ -182,6 +247,7 @@ def RunRevokerByVotingTests(
 		confirmPrompt=False # don't prompt for confirmation
 	)
 	votingAddr = votingReceipt.contractAddress
+	gasCosts['deployRevokerByVoting'] = votingReceipt.gasUsed
 	print('RevokerByVoting contract deployed at {}'.format(votingAddr))
 	votingContract = EthContractHelper.LoadContract(
 		w3=w3,
@@ -194,6 +260,9 @@ def RunRevokerByVotingTests(
 
 	# revoke an enclave
 	enclaveId = '0x1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF'
+
+	voteCosts = []
+	# stakeholder 0
 	privKey = EthContractHelper.SetupSendingAccount(
 		w3=w3,
 		account=0, # use account 0
@@ -208,6 +277,7 @@ def RunRevokerByVotingTests(
 		privKey=privKey,
 		confirmPrompt=False # don't prompt for confirmation
 	)
+	voteCosts.append(voteReceipt.gasUsed)
 	revokeState = EthContractHelper.CallContractFunc(
 		w3=w3,
 		contract=votingContract,
@@ -233,6 +303,7 @@ def RunRevokerByVotingTests(
 		gas=9999999,
 		confirmPrompt=False # don't prompt for confirmation
 	)
+	voteCosts.append(voteReceipt.gasUsed)
 	assert CheckEnclaveIdInReceipt(voteReceipt, enclaveId), 'Enclave ID not in receipt'
 	revokeState = EthContractHelper.CallContractFunc(
 		w3=w3,
@@ -245,17 +316,25 @@ def RunRevokerByVotingTests(
 	assert revokeState == True, 'Enclave should be revoked after 2 votes'
 	print()
 
+	gasCosts['revokeVoteAvg'] = sum(voteCosts) / len(voteCosts)
+
 
 def RunRevokerByConflictMsgTests(
 	w3: Web3,
 	pubSubAddr: str,
-	decentSvrCertMgrAddr: str,
+	iasRootCertMgrAddr: str,
+	gasCosts: Dict[str, int],
 ) -> None:
 	# setup sending account
 	privKey = EthContractHelper.SetupSendingAccount(
 		w3=w3,
 		account=0, # use account 0
 		keyJson=CHECKSUM_KEYS_PATH
+	)
+
+	decentSvrCertMgrAddr = DeployDecentSvrCertMgr(
+		w3,
+		DeployIasReportCertMgr(w3, iasRootCertMgrAddr)
 	)
 
 	# deploy RevokerByConflictMsg contract
@@ -277,6 +356,7 @@ def RunRevokerByConflictMsgTests(
 		confirmPrompt=False # don't prompt for confirmation
 	)
 	revokerAddr = revokerReceipt.contractAddress
+	gasCosts['deployRevokerByConflictMsg'] = revokerReceipt.gasUsed
 	print('RevokerByConflictMsg contract deployed at {}'.format(revokerAddr))
 	revokerContract = EthContractHelper.LoadContract(
 		w3=w3,
@@ -311,6 +391,7 @@ def RunRevokerByConflictMsgTests(
 	)
 	assert CheckEnclaveIdInReceipt(reportReceipt, credentials['enclaveHash']), \
 		'Enclave ID not in receipt'
+	gasCosts['reportConflicts'] = reportReceipt.gasUsed
 	revokeState = EthContractHelper.CallContractFunc(
 		w3=w3,
 		contract=revokerContract,
@@ -326,7 +407,8 @@ def RunRevokerByConflictMsgTests(
 def RunRevokerByLeakedKeyTests(
 	w3: Web3,
 	pubSubAddr: str,
-	decentSvrCertMgrAddr: str,
+	iasRootCertMgrAddr: str,
+	gasCosts: Dict[str, int],
 ) -> None:
 	# setup sending account
 	privKey = EthContractHelper.SetupSendingAccount(
@@ -335,10 +417,10 @@ def RunRevokerByLeakedKeyTests(
 		keyJson=CHECKSUM_KEYS_PATH
 	)
 
-	credentials = LoadProblemCredential(0, 0, 1)
-
-	# generate revoke signature
-	rHex, sHex = GenerateRevokeSign(credentials)
+	decentSvrCertMgrAddr = DeployDecentSvrCertMgr(
+		w3,
+		DeployIasReportCertMgr(w3, iasRootCertMgrAddr)
+	)
 
 	# deploy RevokerByLeakedKey contract
 	print('Deploying RevokerByLeakedKey contract...')
@@ -359,6 +441,7 @@ def RunRevokerByLeakedKeyTests(
 		confirmPrompt=False # don't prompt for confirmation
 	)
 	revokerAddr = revokerReceipt.contractAddress
+	gasCosts['deployRevokerByLeakedKey'] = revokerReceipt.gasUsed
 	print('RevokerByLeakedKey contract deployed at {}'.format(revokerAddr))
 	revokerContract = EthContractHelper.LoadContract(
 		w3=w3,
@@ -368,6 +451,11 @@ def RunRevokerByLeakedKeyTests(
 		address=revokerAddr
 	)
 	print()
+
+	credentials = LoadProblemCredential(0, 0, 1)
+
+	# generate revoke signature
+	rHex, sHex = GenerateRevokeSign(credentials)
 
 	print('report leaked key to revoke enclave {}'.format(
 		credentials['enclaveHash']
@@ -387,6 +475,7 @@ def RunRevokerByLeakedKeyTests(
 	)
 	assert CheckEnclaveIdInReceipt(reportReceipt, credentials['enclaveHash']), \
 		'Enclave ID not in receipt'
+	gasCosts['reportLeakedKey'] = reportReceipt.gasUsed
 	revokeState = EthContractHelper.CallContractFunc(
 		w3=w3,
 		contract=revokerContract,
@@ -465,58 +554,19 @@ def RunTests() -> None:
 	print('IASRootCertMgr contract deployed at {}'.format(iasRootAddr))
 	print()
 
-	# deploy IASReportCertMgr contract
-	print('Deploying IASReportCertMgr contract...')
-	iasReportContract = EthContractHelper.LoadContract(
-		w3=w3,
-		projConf=PROJECT_CONFIG_PATH,
-		contractName='IASReportCertMgr',
-		release=None, # use locally built contract
-		address=None, # deploy new contract
-	)
-	iasReportReceipt = EthContractHelper.DeployContract(
-		w3=w3,
-		contract=iasReportContract,
-		arguments=[ iasRootAddr ],
-		privKey=privKey,
-		gas=None, # let web3 estimate
-		value=0,
-		confirmPrompt=False # don't prompt for confirmation
-	)
-	iasReportAddr = iasReportReceipt.contractAddress
-	print('IASReportCertMgr contract deployed at {}'.format(iasReportAddr))
-	print()
-
-	# deploy DecentServerCertMgr contract
-	print('Deploying DecentServerCertMgr contract...')
-	decentSvrContract = EthContractHelper.LoadContract(
-		w3=w3,
-		projConf=PROJECT_CONFIG_PATH,
-		contractName='DecentServerCertMgr',
-		release=None, # use locally built contract
-		address=None, # deploy new contract
-	)
-	decentSvrReceipt = EthContractHelper.DeployContract(
-		w3=w3,
-		contract=decentSvrContract,
-		arguments=[ iasReportAddr ],
-		privKey=privKey,
-		gas=None, # let web3 estimate
-		value=0,
-		confirmPrompt=False # don't prompt for confirmation
-	)
-	decentSvrAddr = decentSvrReceipt.contractAddress
-	print('DecentServerCertMgr contract deployed at {}'.format(decentSvrAddr))
-	print()
+	gasCost = {}
 
 	# Run RevokerByVoting tests
-	RunRevokerByVotingTests(w3, pubSubAddr)
+	RunRevokerByVotingTests(w3, pubSubAddr, gasCost)
 
 	# Run RevokerByConflictMsg tests
-	RunRevokerByConflictMsgTests(w3, pubSubAddr, decentSvrAddr)
+	RunRevokerByConflictMsgTests(w3, pubSubAddr, iasRootAddr, gasCost)
 
 	# Run RevokerByLeakedKey tests
-	RunRevokerByLeakedKeyTests(w3, pubSubAddr, decentSvrAddr)
+	RunRevokerByLeakedKeyTests(w3, pubSubAddr, iasRootAddr, gasCost)
+
+	with open(os.path.join(BUILD_DIR, 'gas_cost_decent_revoker.json'), 'w') as f:
+		json.dump(gasCost, f, indent='\t')
 
 
 def StopGanache(ganacheProc: subprocess.Popen) -> None:
