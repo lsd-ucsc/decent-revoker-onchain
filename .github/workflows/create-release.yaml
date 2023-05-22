@@ -35,20 +35,8 @@ jobs:
         ${{ github.workspace }}/build/solc-static-linux
         --version | tail -n 1 | sed -e "s/^Version: //g"
       RELE_NOTE: ${{ github.workspace }}/build/release_note.md
-      PUBSUB_SOLC_FLAGS: >-
-        --optimize --optimize-runs 200
-        --revert-strings strip
-        --via-ir
-        --overwrite
-        --base-path ${{ github.workspace }}/libs/DecentPubSub/
-        --output-dir ${{ github.workspace }}/libs/DecentPubSub/build/PubSub/
-      RA_SOLC_FLAGS: >-
-        --optimize --optimize-runs 200
-        --revert-strings strip
-        --via-ir
-        --overwrite
-        --base-path ${{ github.workspace }}/libs/DecentRA/
-        --output-dir ${{ github.workspace }}/libs/DecentRA/build/contracts/
+      DECENT_PUBSUB_VER: v0.1.6
+      DECENT_RA_VER: v0.0.1
 
     name: A job to create a release
     steps:
@@ -66,6 +54,10 @@ jobs:
     - name: Installing Python packages
       run: |
         python3 -m pip install --requirement ${{ github.workspace }}/utils/gas_cost_eval_requirements.txt
+
+    - name: Installing GitHubApiHelper
+      run: |
+        python3 -m pip install git+https://github.com/zhenghaven/GitHubApiHelper.git@v0.1.0
 
     - name: Installing Node ${{ matrix.node-version }}
       uses: actions/setup-node@v3
@@ -148,21 +140,67 @@ jobs:
         cp KeyRevokerByLeakedKey.bin    KeyRevoker/KeyRevokerByLeakedKey.bin
         cp KeyRevokerByLeakedKey.abi    KeyRevoker/KeyRevokerByLeakedKey.abi
 
-    - name: Compiling contracts for DecentPubSub
+    - name: Downloading built contracts for DecentPubSub
+      env:
+        GITHUB_TOKEN: ${{ secrets.ACCESS_APP_TOKEN }}
       run: |
-        ${SOLC_BIN} ${PUBSUB_SOLC_FLAGS} --bin ${{ github.workspace }}/libs/DecentPubSub/PubSub/PubSubService.sol
-        ${SOLC_BIN} ${PUBSUB_SOLC_FLAGS} --abi ${{ github.workspace }}/libs/DecentPubSub/PubSub/PubSubService.sol
+        mkdir -p ${{ github.workspace }}/libs/DecentPubSub/build/PubSub/
+        python3 -m GitHubApiHelper --auth-token \
+          api_release_asset_dl \
+          --version ${DECENT_PUBSUB_VER} \
+          --asset PubSubService.bin \
+          --save-path ${{ github.workspace }}/libs/DecentPubSub/build/PubSub/PubSubService.bin \
+          --repo lsd-ucsc/decent-pubsub-onchain
+        python3 -m GitHubApiHelper --auth-token \
+          api_release_asset_dl \
+          --version ${DECENT_PUBSUB_VER} \
+          --asset PubSubService.abi \
+          --save-path ${{ github.workspace }}/libs/DecentPubSub/build/PubSub/PubSubService.abi \
+          --repo lsd-ucsc/decent-pubsub-onchain
         sha256sum ${{ github.workspace }}/libs/DecentPubSub/build/PubSub/PubSubService.bin
         sha256sum ${{ github.workspace }}/libs/DecentPubSub/build/PubSub/PubSubService.abi
 
-    - name: Compiling contracts for DecentRA
+    - name: Downloading built contracts for DecentRA
+      env:
+        GITHUB_TOKEN: ${{ secrets.ACCESS_APP_TOKEN }}
       run: |
-        ${SOLC_BIN} ${PUBSUB_SOLC_FLAGS} --bin ${{ github.workspace }}/libs/DecentRA/contracts/IASRootCertMgr.sol
-        ${SOLC_BIN} ${PUBSUB_SOLC_FLAGS} --abi ${{ github.workspace }}/libs/DecentRA/contracts/IASRootCertMgr.sol
-        ${SOLC_BIN} ${PUBSUB_SOLC_FLAGS} --bin ${{ github.workspace }}/libs/DecentRA/contracts/IASReportCertMgr.sol
-        ${SOLC_BIN} ${PUBSUB_SOLC_FLAGS} --abi ${{ github.workspace }}/libs/DecentRA/contracts/IASReportCertMgr.sol
-        ${SOLC_BIN} ${PUBSUB_SOLC_FLAGS} --bin ${{ github.workspace }}/libs/DecentRA/contracts/DecentServerCertMgr.sol
-        ${SOLC_BIN} ${PUBSUB_SOLC_FLAGS} --abi ${{ github.workspace }}/libs/DecentRA/contracts/DecentServerCertMgr.sol
+        mkdir -p ${{ github.workspace }}/libs/DecentRA/build/contracts/
+        python3 -m GitHubApiHelper --auth-token \
+          api_release_asset_dl \
+          --version ${DECENT_RA_VER} \
+          --asset IASRootCertMgr.bin \
+          --save-path ${{ github.workspace }}/libs/DecentRA/build/contracts/IASRootCertMgr.bin \
+          --repo lsd-ucsc/decent-ra-onchain
+        python3 -m GitHubApiHelper --auth-token \
+          api_release_asset_dl \
+          --version ${DECENT_RA_VER} \
+          --asset IASRootCertMgr.abi \
+          --save-path ${{ github.workspace }}/libs/DecentRA/build/contracts/IASRootCertMgr.abi \
+          --repo lsd-ucsc/decent-ra-onchain
+        python3 -m GitHubApiHelper --auth-token \
+          api_release_asset_dl \
+          --version ${DECENT_RA_VER} \
+          --asset IASReportCertMgr.bin \
+          --save-path ${{ github.workspace }}/libs/DecentRA/build/contracts/IASReportCertMgr.bin \
+          --repo lsd-ucsc/decent-ra-onchain
+        python3 -m GitHubApiHelper --auth-token \
+          api_release_asset_dl \
+          --version ${DECENT_RA_VER} \
+          --asset IASReportCertMgr.abi \
+          --save-path ${{ github.workspace }}/libs/DecentRA/build/contracts/IASReportCertMgr.abi \
+          --repo lsd-ucsc/decent-ra-onchain
+        python3 -m GitHubApiHelper --auth-token \
+          api_release_asset_dl \
+          --version ${DECENT_RA_VER} \
+          --asset DecentServerCertMgr.bin \
+          --save-path ${{ github.workspace }}/libs/DecentRA/build/contracts/DecentServerCertMgr.bin \
+          --repo lsd-ucsc/decent-ra-onchain
+        python3 -m GitHubApiHelper --auth-token \
+          api_release_asset_dl \
+          --version ${DECENT_RA_VER} \
+          --asset DecentServerCertMgr.abi \
+          --save-path ${{ github.workspace }}/libs/DecentRA/build/contracts/DecentServerCertMgr.abi \
+          --repo lsd-ucsc/decent-ra-onchain
         sha256sum ${{ github.workspace }}/libs/DecentRA/build/contracts/IASRootCertMgr.bin
         sha256sum ${{ github.workspace }}/libs/DecentRA/build/contracts/IASRootCertMgr.abi
         sha256sum ${{ github.workspace }}/libs/DecentRA/build/contracts/IASReportCertMgr.bin
