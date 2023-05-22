@@ -1,0 +1,46 @@
+name: Running Solidity Unit Tests for Decent Revoker contracts
+
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+
+jobs:
+  run_sol_contracts_job:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-22.04 ]
+        solc-version: [ 0.8.20 ]
+        chain-fork: [ shanghai ]
+        opt-runs: [ 200 ]
+
+    name: A job to run solidity unit tests on github actions CI
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.ACCESS_APP_TOKEN }}
+        submodules: recursive
+
+    - name: Run Solidity Unit Testing for DecentRevoker Tests
+      uses: EthereumRemix/sol-test@v1.1
+      with:
+        test-path: 'tests/DecentRevoker'
+        compiler-version: ${{ matrix.solc-version }}
+        optimize: true
+        optimizer-runs: ${{ matrix.opt-runs }}
+        hard-fork: ${{ matrix.chain-fork }}
+
+    - name: Run Solidity Unit Testing for KeyRevoker Tests
+      uses: EthereumRemix/sol-test@v1.1
+      with:
+        test-path: 'tests/KeyRevoker'
+        compiler-version: ${{ matrix.solc-version }}
+        optimize: true
+        optimizer-runs: ${{ matrix.opt-runs }}
+        hard-fork: ${{ matrix.chain-fork }}
