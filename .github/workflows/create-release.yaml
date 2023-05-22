@@ -1,0 +1,263 @@
+name: Create release
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - "v*.*.*"
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  create_release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-22.04 ]
+
+        python-version: [ 3.11 ]
+        node-version: [ 18.16.0 ]
+
+        ganache-version: [ 7.8.0 ]
+
+        solc-version: [ v0.8.20 ]
+
+    env:
+      SOLC_BIN: ${{ github.workspace }}/build/solc-static-linux
+      SOLC_FLAGS: >-
+        --optimize --optimize-runs 200
+        --revert-strings strip
+        --via-ir
+        --overwrite
+        --base-path ${{ github.workspace }}
+        --output-dir ${{ github.workspace }}/build/
+      SOLC_VER_CMD: >-
+        ${{ github.workspace }}/build/solc-static-linux
+        --version | tail -n 1 | sed -e "s/^Version: //g"
+      RELE_NOTE: ${{ github.workspace }}/build/release_note.md
+      PUBSUB_SOLC_FLAGS: >-
+        --optimize --optimize-runs 200
+        --revert-strings strip
+        --via-ir
+        --overwrite
+        --base-path ${{ github.workspace }}/libs/DecentPubSub/
+        --output-dir ${{ github.workspace }}/libs/DecentPubSub/build/PubSub/
+      RA_SOLC_FLAGS: >-
+        --optimize --optimize-runs 200
+        --revert-strings strip
+        --via-ir
+        --overwrite
+        --base-path ${{ github.workspace }}/libs/DecentRA/
+        --output-dir ${{ github.workspace }}/libs/DecentRA/build/contracts/
+
+    name: A job to create a release
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Installing Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Installing Python packages
+      run: |
+        python3 -m pip install --requirement ${{ github.workspace }}/utils/gas_cost_eval_requirements.txt
+
+    - name: Installing Node ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Installing NPM packages
+      run: |
+        npm install -g ganache@${{ matrix.ganache-version }}
+
+    - name: Installing Solc compiler
+      run: |
+        mkdir -p ${{ github.workspace }}/build/
+        curl -fsSL -o ${SOLC_BIN} \
+          https://github.com/ethereum/solidity/releases/download/${{ matrix.solc-version }}/solc-static-linux
+        chmod +x ${SOLC_BIN}
+
+    - name: Compiling contracts for DecentRevoker/RevokerByVoting.sol
+      run: |
+        ${SOLC_BIN} ${SOLC_FLAGS} --bin ${{ github.workspace }}/DecentRevoker/RevokerByVoting.sol
+        ${SOLC_BIN} ${SOLC_FLAGS} --abi ${{ github.workspace }}/DecentRevoker/RevokerByVoting.sol
+
+    - name: Compiling contracts for DecentRevoker/RevokerByConflictMsg.sol
+      run: |
+        ${SOLC_BIN} ${SOLC_FLAGS} --bin ${{ github.workspace }}/DecentRevoker/RevokerByConflictMsg.sol
+        ${SOLC_BIN} ${SOLC_FLAGS} --abi ${{ github.workspace }}/DecentRevoker/RevokerByConflictMsg.sol
+
+    - name: Compiling contracts for DecentRevoker/RevokerByLeakedKey.sol
+      run: |
+        ${SOLC_BIN} ${SOLC_FLAGS} --bin ${{ github.workspace }}/DecentRevoker/RevokerByLeakedKey.sol
+        ${SOLC_BIN} ${SOLC_FLAGS} --abi ${{ github.workspace }}/DecentRevoker/RevokerByLeakedKey.sol
+
+    - name: Compiling contracts for KeyRevoker/KeyRevokerByVoting.sol
+      run: |
+        ${SOLC_BIN} ${SOLC_FLAGS} --bin ${{ github.workspace }}/KeyRevoker/KeyRevokerByVoting.sol
+        ${SOLC_BIN} ${SOLC_FLAGS} --abi ${{ github.workspace }}/KeyRevoker/KeyRevokerByVoting.sol
+
+    - name: Compiling contracts for KeyRevoker/KeyRevokerByConflictMsg.sol
+      run: |
+        ${SOLC_BIN} ${SOLC_FLAGS} --bin ${{ github.workspace }}/KeyRevoker/KeyRevokerByConflictMsg.sol
+        ${SOLC_BIN} ${SOLC_FLAGS} --abi ${{ github.workspace }}/KeyRevoker/KeyRevokerByConflictMsg.sol
+
+    - name: Compiling contracts for KeyRevoker/KeyRevokerByLeakedKey.sol
+      run: |
+        ${SOLC_BIN} ${SOLC_FLAGS} --bin ${{ github.workspace }}/KeyRevoker/KeyRevokerByLeakedKey.sol
+        ${SOLC_BIN} ${SOLC_FLAGS} --abi ${{ github.workspace }}/KeyRevoker/KeyRevokerByLeakedKey.sol
+
+    - name: Calculating checksums of the binary
+      working-directory: ${{ github.workspace }}/build
+      run: |
+        sha256sum solc-static-linux            >> checksums.txt
+        sha256sum RevokerByVoting.bin          >> checksums.txt
+        sha256sum RevokerByVoting.abi          >> checksums.txt
+        sha256sum RevokerByConflictMsg.bin     >> checksums.txt
+        sha256sum RevokerByConflictMsg.abi     >> checksums.txt
+        sha256sum RevokerByLeakedKey.bin       >> checksums.txt
+        sha256sum RevokerByLeakedKey.abi       >> checksums.txt
+        sha256sum KeyRevokerByVoting.bin       >> checksums.txt
+        sha256sum KeyRevokerByVoting.abi       >> checksums.txt
+        sha256sum KeyRevokerByConflictMsg.abi  >> checksums.txt
+        sha256sum KeyRevokerByConflictMsg.abi  >> checksums.txt
+        sha256sum KeyRevokerByLeakedKey.abi    >> checksums.txt
+        sha256sum KeyRevokerByLeakedKey.abi    >> checksums.txt
+
+    - name: Prepare binaries for gas cost evaluation
+      working-directory: ${{ github.workspace }}/build
+      run: |
+        mkdir -p DecentRevoker
+        cp RevokerByVoting.bin       DecentRevoker/RevokerByVoting.bin
+        cp RevokerByVoting.abi       DecentRevoker/RevokerByVoting.abi
+        cp RevokerByConflictMsg.bin  DecentRevoker/RevokerByConflictMsg.bin
+        cp RevokerByConflictMsg.abi  DecentRevoker/RevokerByConflictMsg.abi
+        cp RevokerByLeakedKey.bin    DecentRevoker/RevokerByLeakedKey.bin
+        cp RevokerByLeakedKey.abi    DecentRevoker/RevokerByLeakedKey.abi
+        mkdir -p KeyRevoker
+        cp KeyRevokerByVoting.bin       KeyRevoker/KeyRevokerByVoting.bin
+        cp KeyRevokerByVoting.abi       KeyRevoker/KeyRevokerByVoting.abi
+        cp KeyRevokerByConflictMsg.bin  KeyRevoker/KeyRevokerByConflictMsg.bin
+        cp KeyRevokerByConflictMsg.abi  KeyRevoker/KeyRevokerByConflictMsg.abi
+        cp KeyRevokerByLeakedKey.bin    KeyRevoker/KeyRevokerByLeakedKey.bin
+        cp KeyRevokerByLeakedKey.abi    KeyRevoker/KeyRevokerByLeakedKey.abi
+
+    - name: Compiling contracts for DecentPubSub
+      run: |
+        ${SOLC_BIN} ${PUBSUB_SOLC_FLAGS} --bin ${{ github.workspace }}/libs/DecentPubSub/PubSub/PubSubService.sol
+        ${SOLC_BIN} ${PUBSUB_SOLC_FLAGS} --abi ${{ github.workspace }}/libs/DecentPubSub/PubSub/PubSubService.sol
+        sha256sum ${{ github.workspace }}/libs/DecentPubSub/build/PubSub/PubSubService.bin
+        sha256sum ${{ github.workspace }}/libs/DecentPubSub/build/PubSub/PubSubService.abi
+
+    - name: Compiling contracts for DecentRA
+      run: |
+        ${SOLC_BIN} ${PUBSUB_SOLC_FLAGS} --bin ${{ github.workspace }}/libs/DecentRA/contracts/IASRootCertMgr.sol
+        ${SOLC_BIN} ${PUBSUB_SOLC_FLAGS} --abi ${{ github.workspace }}/libs/DecentRA/contracts/IASRootCertMgr.sol
+        ${SOLC_BIN} ${PUBSUB_SOLC_FLAGS} --bin ${{ github.workspace }}/libs/DecentRA/contracts/IASReportCertMgr.sol
+        ${SOLC_BIN} ${PUBSUB_SOLC_FLAGS} --abi ${{ github.workspace }}/libs/DecentRA/contracts/IASReportCertMgr.sol
+        ${SOLC_BIN} ${PUBSUB_SOLC_FLAGS} --bin ${{ github.workspace }}/libs/DecentRA/contracts/DecentServerCertMgr.sol
+        ${SOLC_BIN} ${PUBSUB_SOLC_FLAGS} --abi ${{ github.workspace }}/libs/DecentRA/contracts/DecentServerCertMgr.sol
+        sha256sum ${{ github.workspace }}/libs/DecentRA/build/contracts/IASRootCertMgr.bin
+        sha256sum ${{ github.workspace }}/libs/DecentRA/build/contracts/IASRootCertMgr.abi
+        sha256sum ${{ github.workspace }}/libs/DecentRA/build/contracts/IASReportCertMgr.bin
+        sha256sum ${{ github.workspace }}/libs/DecentRA/build/contracts/IASReportCertMgr.abi
+        sha256sum ${{ github.workspace }}/libs/DecentRA/build/contracts/DecentServerCertMgr.bin
+        sha256sum ${{ github.workspace }}/libs/DecentRA/build/contracts/DecentServerCertMgr.abi
+
+    - name: Run gas cost evaluation for DecentRevoker
+      run: |
+        python3 ${{ github.workspace }}/utils/GasEvalDecentRevoker.py
+
+    - name: Run gas cost evaluation for KeyRevoker
+      run: |
+        python3 ${{ github.workspace }}/utils/GasEvalKeyRevoker.py
+
+    - name: Generate release note
+      working-directory: ${{ github.workspace }}/build
+      run: |
+        echo "# Release note"                   >> ${RELE_NOTE}
+        echo "" >> ${RELE_NOTE}
+        echo "## Contracts"                             >> ${RELE_NOTE}
+        echo "- DecentRevoker/RevokerByVoting.sol"      >> ${RELE_NOTE}
+        echo "- DecentRevoker/RevokerByConflictMsg.sol" >> ${RELE_NOTE}
+        echo "- DecentRevoker/RevokerByLeakedKey.sol"   >> ${RELE_NOTE}
+        echo "- KeyRevoker/KeyRevokerByVoting.sol"      >> ${RELE_NOTE}
+        echo "- KeyRevoker/KeyRevokerByConflictMsg.sol" >> ${RELE_NOTE}
+        echo "- KeyRevoker/KeyRevokerByLeakedKey.sol"   >> ${RELE_NOTE}
+        echo "" >> ${RELE_NOTE}
+        echo "## Build configurations"                          >> ${RELE_NOTE}
+        echo "- OS: \`${{ matrix.os }}\`"                       >> ${RELE_NOTE}
+        echo "- Solc version: \`$(bash -c "${SOLC_VER_CMD}")\`" >> ${RELE_NOTE}
+        echo "- Compiler Flags: \`${SOLC_FLAGS}\`"              >> ${RELE_NOTE}
+        echo "" >> ${RELE_NOTE}
+        echo "## Checksums"       >> ${RELE_NOTE}
+        echo "\`\`\`"             >> ${RELE_NOTE}
+        cat checksums.txt         >> ${RELE_NOTE}
+        echo "\`\`\`"             >> ${RELE_NOTE}
+        echo "" >> ${RELE_NOTE}
+        echo "## Gas Cost Evaluations" >> ${RELE_NOTE}
+        echo "" >> ${RELE_NOTE}
+        echo "### Decent Revoker"         >> ${RELE_NOTE}
+        echo "\`\`\`json"                 >> ${RELE_NOTE}
+        cat gas_cost_decent_revoker.json  >> ${RELE_NOTE}
+        echo ""                           >> ${RELE_NOTE}
+        echo "\`\`\`"                     >> ${RELE_NOTE}
+        echo "" >> ${RELE_NOTE}
+        echo "### Key Revoker"         >> ${RELE_NOTE}
+        echo "\`\`\`json"              >> ${RELE_NOTE}
+        cat gas_cost_key_revoker.json  >> ${RELE_NOTE}
+        echo ""                        >> ${RELE_NOTE}
+        echo "\`\`\`"                  >> ${RELE_NOTE}
+        echo "" >> ${RELE_NOTE}
+
+    - name: Echo release note
+      run: |
+        cat ${{ github.workspace }}/build/release_note.md
+
+    - name: Release for non-tagged commit
+      uses: actions/upload-artifact@v3
+      if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      with:
+        name: non_tagged_release
+        path: |
+          ${{ github.workspace }}/build/release_note.md
+          ${{ github.workspace }}/build/RevokerByVoting.bin
+          ${{ github.workspace }}/build/RevokerByVoting.abi
+          ${{ github.workspace }}/build/RevokerByConflictMsg.bin
+          ${{ github.workspace }}/build/RevokerByConflictMsg.abi
+          ${{ github.workspace }}/build/RevokerByLeakedKey.bin
+          ${{ github.workspace }}/build/RevokerByLeakedKey.abi
+          ${{ github.workspace }}/build/KeyRevokerByVoting.bin
+          ${{ github.workspace }}/build/KeyRevokerByVoting.abi
+          ${{ github.workspace }}/build/KeyRevokerByConflictMsg.bin
+          ${{ github.workspace }}/build/KeyRevokerByConflictMsg.abi
+          ${{ github.workspace }}/build/KeyRevokerByLeakedKey.bin
+          ${{ github.workspace }}/build/KeyRevokerByLeakedKey.abi
+          ${{ github.workspace }}/build/gas_cost_decent_revoker.json
+          ${{ github.workspace }}/build/gas_cost_key_revoker.json
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        body_path: ${{ github.workspace }}/build/release_note.md
+        files: |
+          ${{ github.workspace }}/build/RevokerByVoting.bin
+          ${{ github.workspace }}/build/RevokerByVoting.abi
+          ${{ github.workspace }}/build/RevokerByConflictMsg.bin
+          ${{ github.workspace }}/build/RevokerByConflictMsg.abi
+          ${{ github.workspace }}/build/RevokerByLeakedKey.bin
+          ${{ github.workspace }}/build/RevokerByLeakedKey.abi
+          ${{ github.workspace }}/build/KeyRevokerByVoting.bin
+          ${{ github.workspace }}/build/KeyRevokerByVoting.abi
+          ${{ github.workspace }}/build/KeyRevokerByConflictMsg.bin
+          ${{ github.workspace }}/build/KeyRevokerByConflictMsg.abi
+          ${{ github.workspace }}/build/KeyRevokerByLeakedKey.bin
+          ${{ github.workspace }}/build/KeyRevokerByLeakedKey.abi
+          ${{ github.workspace }}/build/gas_cost_decent_revoker.json
+          ${{ github.workspace }}/build/gas_cost_key_revoker.json
