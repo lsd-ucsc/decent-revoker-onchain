@@ -55,6 +55,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
       with:
+        token: ${{ secrets.ACCESS_APP_TOKEN }}
         submodules: recursive
 
     - name: Installing Python ${{ matrix.python-version }}
