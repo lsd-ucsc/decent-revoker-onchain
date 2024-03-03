@@ -9,8 +9,9 @@
 		"RevokerByLeakedKey"        : "DecentRevoker",
 		"KeyRevokerByVoting"        : "KeyRevoker",
 		"KeyRevokerByConflictMsg"   : "KeyRevoker",
-		"KeyRevokerByLeakedKey"     : "KeyRevoker"
+		"KeyRevokerByLeakedKey"     : "KeyRevoker",
+		"VoteProxy"                 : "tests"
 	},
-	"releaseUrl": "https://github.com/lsd-ucsc/decent-ra-onchain/releases/download/{version}/{contract}",
+	"releaseUrl": "https://github.com/lsd-ucsc/decent-revoker-onchain/releases/download/{version}/{contract}",
 	"buildDir"  : "build"
 }
